@@ -26,17 +26,17 @@ function MinkowskiFunctional(x::T, bs=bases, fs=functionals) where T <: Abstract
     for j in 1:n-1
         for i in 1:m-1
             for k in 1:length(bs)
-                if y[i, j] == bs[k][1, 1] && y[i, j+1] == bs[k][1, 2] && y[i+1, j] == bs[k][2, 1] && y[i+1, j+1] == bs[k][2, 2]
-                    A += fs[k][1]
-                    P += fs[k][2]
-                    χ += fs[k][3]
+                @inbounds if y[i, j] == bs[k][1, 1] && y[i, j+1] == bs[k][1, 2] && y[i+1, j] == bs[k][2, 1] && y[i+1, j+1] == bs[k][2, 2]
+                    @inbounds A += fs[k][1]
+                    @inbounds P += fs[k][2]
+                    @inbounds χ += fs[k][3]
                     break
                 end
             end
         end
     end
 
-    return MinkowskiFunctional(A, P, χ) # +1
+   return MinkowskiFunctional(A, P, χ)
 end
 
 MinkowskiFunctional(x::BWMap) = MinkowskiFunctional(x.pixels)
