@@ -30,6 +30,7 @@ function MinkowskiFunctional(x::T, bs=bases, fs=functionals) where T <: Abstract
                     A += fs[k][1]
                     P += fs[k][2]
                     χ += fs[k][3]
+                    break
                 end
             end
         end
