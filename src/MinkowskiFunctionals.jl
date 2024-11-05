@@ -7,7 +7,9 @@ using StaticArrays
 using PaddedViews
 import Base: rand
 export CountsMap, BWMap, MinkowskiFunctional
+    generate_distributions
 include("types.jl")
 include("calculate.jl")
+include("generate.jl")
 
 end
