@@ -1,3 +1,4 @@
+# TABLE FROM MOPRHOMETRIC ANALYSIS PAPER 2013
 functionals = [
     (0.0, 0.0, 0.0), (1/4, 1.0, 1/4), (1/4, 1.0, 1/4), (1/2, 1.0, 0.0),
     (1/4, 1.0, 1/4), (1/2, 1.0, 0.0), (1/2, 2.0, -1/2), (3/4, 1.0, -1/4),
@@ -5,10 +6,6 @@ functionals = [
     (1/2, 1.0, 0.0), (3/4, 1.0, -1/4), (3/4, 1.0, -1/4), (1.0, 0.0, 0.0)
 ]
 bases = [SMatrix{2, 2}(digits(UInt8(i), base=2, pad=2^2)) for i in 0:15]
-
-functionals_old = [MinkowskiFunctional(f...) for f in functionals]
-bases_states = [BasesState(b, f) for (b, f) in zip(bases, functionals_old)]
-
 
 """
     function MinkowskiFunctional(x::T, bs=bases, fs=functionals) where T <: AbstractArray
@@ -40,25 +37,4 @@ function MinkowskiFunctional(x::T, bs=bases, fs=functionals) where T <: Abstract
 end
 
 MinkowskiFunctional(x::BWMap) = MinkowskiFunctional(x.pixels)
-
-function MinkowskiFunctional_old(x::T, bases_states=bases_states) where T <: AbstractArray
-    A = 0 # +1
-    P = 0 # +1
-    χ = 0 # +1
-    y = PaddedView(0, x, size(x) .+2, (2,2))
-    for j in 1:size(y)[2]-1
-        for i in 1:size(y)[1]-1
-            xview = @view y[i:i+1, j:j+1]
-            for b in bases_states
-                if xview == b.pixels
-                    A += b.functional.A
-                    P += b.functional.P
-                    χ += b.functional.χ
-                end
-            end
-        end
-    end
-
-    return MinkowskiFunctional(A, P, χ) # +1
-end
 
