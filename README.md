@@ -1,6 +1,7 @@
 # MinkowskiFunctionals
 
 [![Build Status](https://github.com/markuspirke/MinkowskiFunctionals.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/markuspirke/MinkowskiFunctionals.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://markuspirke.github.io/MinkowskiFunctionals.jl/dev/)
 
 **MinkowskiFunctionals.jl** is a Julia package for calculating 2D Minkowski functionals on black-and-white images.
 Minkowski functionals offer a powerful method for characterizing the shape, size, and connectivity of structures in binary images, without relying on overly detailed descriptions and assumptions.
