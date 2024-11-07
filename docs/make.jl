@@ -1,7 +1,4 @@
-using Documenter, Pkg
-using Pkg
-Pkg.develop(path="..")
-using MinkowskiFunctionals
+using Documenter, MinkowskiFunctionals
 
 makedocs(
     sitename="MinkowskiFunctionals.jl",
