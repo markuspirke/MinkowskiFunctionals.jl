@@ -1,12 +1,11 @@
 module MinkowskiFunctionals
 
-using Distributions
-using StatsBase
-using StaticArrays
-using PaddedViews
-# import Random: rand
-using Random
 using Base.Threads
+using Distributions
+using PaddedViews
+using Random
+using StaticArrays
+using StatsBase
 
 
 export CountsMap, BWMap, MinkowskiFunctional,
