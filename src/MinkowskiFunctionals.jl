@@ -10,8 +10,8 @@ using StatsBase
 
 
 export CountsMap, BWMap, MinkowskiFunctional,
-    PoissonMinkowskiDistributions #, #MinkowskiDistributionsPhaseSpace,
-    # rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
+    PoissonMinkowskiDistributions,
+    rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions #,
     # MinkowskiMap, deviation_strength
 
 
