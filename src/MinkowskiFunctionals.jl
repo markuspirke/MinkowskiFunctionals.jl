@@ -1,6 +1,7 @@
 module MinkowskiFunctionals
 
 using Base.Threads
+import Base: getindex
 using Distributions
 using PaddedViews
 using Random
@@ -9,14 +10,16 @@ using StatsBase
 
 
 export CountsMap, BWMap, MinkowskiFunctional,
-    rand, Bernoulli, sample_functionals,
-    generate_distributions
+    PoissonMinkowskiDistributions #, #MinkowskiDistributionsPhaseSpace,
+    # rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
+    # MinkowskiMap, deviation_strength
 
 
 include("types.jl")
 include("calculate.jl")
-include("sampling.jl")
 include("generate.jl")
+include("sampling.jl")
+# include("minkwoski_map.jl")
 
 
 end
