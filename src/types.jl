@@ -6,16 +6,17 @@ function CountsMap(d::FullNormal, n, N)
     samples = rand(d, N)
     counts_map = fit(Histogram, (samples[1, :], samples[2,:]), (range(-1, 1, n+1), range(-1,1,n+1)))
 
-    return CountMap(counts_map.weights)
+    return CountsMap(counts_map.weights)
 end
 
 struct BWMap
+    ρ
     pixels::Matrix{Bool}
 end
 
 
 function BWMap(x::CountsMap, ρ)
-    return BWMap(x.pixels .> ρ)
+    return BWMap(ρ, x.pixels .>= ρ)
 end
 
 """

@@ -3,7 +3,7 @@ using MinkowskiFunctionals
 
 @testset "calculate" begin
     image = [1 1 1; 1 0 1; 1 1 1]
-    M = MinkowskiFunctional(BWMap(image))
+    M = MinkowskiFunctional(BWMap(1, image))
 
     @test M.A == 8
     @test M.P == 16
@@ -17,7 +17,7 @@ using MinkowskiFunctionals
 
     image = zeros(42, 42)
     image[42] = 1
-    M = MinkowskiFunctional(BWMap(image))
+    M = MinkowskiFunctional(BWMap(1, image))
 
     @test M.A == 1
     @test M.P == 4
