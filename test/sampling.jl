@@ -10,10 +10,10 @@ using MinkowskiFunctionals
     correct_distributions = PoissonMinkowskiDistributions(n, λ, ρ)
 
     # not a perfect test but at least something
-    @test round(mean(sampled_distributions.d.A), digits=1) ≈ round(mean(correct_distributions.A), digits=1)
-    @test round(std(sampled_distributions.d.A), digits=1) ≈ round(std(correct_distributions.A), digits=1)
+    @test round(mean(sampled_distributions.A), digits=1) ≈ round(mean(correct_distributions.A), digits=1)
+    @test round(std(sampled_distributions.A), digits=1) ≈ round(std(correct_distributions.A), digits=1)
 
-    @test 1.0 ≈ sum(probs(sampled_distributions.d.A))
-    @test 1.0 ≈ sum(probs(sampled_distributions.d.P))
-    @test 1.0 ≈ sum(probs(sampled_distributions.d.χ))
+    @test 1.0 ≈ sum(probs(sampled_distributions.A))
+    @test 1.0 ≈ sum(probs(sampled_distributions.P))
+    @test 1.0 ≈ sum(probs(sampled_distributions.χ))
 end

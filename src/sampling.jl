@@ -56,11 +56,18 @@ end
 
 struct SampledPoissonMinkowskiDistributions
     N
-    d::PoissonMinkowskiDistributions
+    n
+    λ
+    ρ
+    A
+    P
+    χ
+    # d::PoissonMinkowskiDistributions
 
     function SampledPoissonMinkowskiDistributions(N, n, λ, ρ)
         functionals = sample_functionals(N, n, λ, ρ)
-        new(N, _minkowski_distributions(functionals, n, λ, ρ))
+        d = _minkowski_distributions(functionals, n, λ, ρ)
+        new(N, d.n, d.λ, d.ρ, d.A, d.P, d.χ)
     end
 end
 
@@ -91,6 +98,14 @@ function _minkowski_distributions(functionals::Vector{MinkowskiFunctional}, n, �
     return PoissonMinkowskiDistributions(n, λ, ρ, d_area, d_perimeter, d_euler)
 end
 
-function get_distribution(x::SampledPoissonMinkowskiDistributions)
-    return x.d
-end
+# function Base.getindex(v::Vector{SampledPoissonMinkowskiDistributions}, ρ; boundscheck=true)
+#     ρs = getfield.(v, :ρ)
+# 	boundscheck && !(ρ in ρs) && throw(BoundsError(m, ρ))
+#     idx = findfirst(ρs .== ρ)
+
+#     return v[idx]
+# end
+
+# function get_distribution(x::SampledPoissonMinkowskiDistributions)
+#     return x.d
+# end

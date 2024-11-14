@@ -11,9 +11,9 @@ struct MinkowskiMap
 
     function MinkowskiMap(x, h0_distributions, F)
         m, n = size(x.pixels)
-        ρs = [get_distribution(s).ρ for s in h0_distributions]
-        λ = get_distribution(h0_distributions[1]).λ
-        L = get_distribution(h0_distributions[1]).n
+        ρs = [s.ρ for s in h0_distributions]
+        λ = h0_distributions[1].λ
+        L = h0_distributions[1].n
         l = floor(Int, L/2)
         Ds = zeros(n - 2l, m - 2l)
         for j in l+1:m-l
@@ -22,7 +22,7 @@ struct MinkowskiMap
                 for (k, ρ) in enumerate(ρs)
                     bw_map = BWMap(x, ρ)
                     functional = MinkowskiFunctional(bw_map.pixels[i-l:i+l, j-l:j+l])
-                    deviation_strengths[k] = deviation_strength(getfield(get_distribution(h0_distributions[k]), F), getfield(functional, F))
+                    deviation_strengths[k] = deviation_strength(getfield(h0_distributions[k], F), getfield(functional, F))
                 end
                 Ds[i-l, j-l] = maximum(deviation_strengths)
             end
