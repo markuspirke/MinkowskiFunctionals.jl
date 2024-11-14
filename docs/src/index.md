@@ -29,3 +29,18 @@ exact_distributions.A
 exact_distributions.P
 exact_distributions.χ
 ```
+
+## Sampling distributions for Poisson random fields
+Even for 5 x 5 pixels generating exact distributions is computationally heavy. Instead we can also sample distributions like this
+
+```julia
+N = 10000
+n = 3
+λ = 10
+ρ = 10
+sampled_distributions = SampledPoissonMinkowskiDistributions(N, n, λ, ρ)
+
+sampled_distributions.A
+sampled_distributions.P
+sampled_distributions.χ
+```
