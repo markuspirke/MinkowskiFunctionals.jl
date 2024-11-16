@@ -33,6 +33,10 @@ Base.getindex(Ω::DensityOfStates, key::K) where {K} =
 
 Base.length(Ω::DensityOfStates) = length(Ω.data)
 
+function Base.show(io::IO, Ω::DensityOfStates)
+    print(io, "Density of States for a system size of $(Ω.n) x $(Ω.n).")
+end
+
 """
     function save_density_of_states(dos::DensityOfStates, filename::String)
 
