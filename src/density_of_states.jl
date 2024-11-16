@@ -30,3 +30,26 @@ end
 
 Base.getindex(Ω::DensityOfStates, key::K) where {K} =
     get(Ω.data, key, 0)
+
+
+"""
+    function save_density_of_states(dos::DensityOfStates, filename::String)
+
+This saves a Density of States object.
+"""
+function save_density_of_states(dos::DensityOfStates, filename::String)
+    open(filename, "w") do file
+        serialize(file, dos)
+    end
+end
+
+"""
+    function load_density_of_states(filename::String)::DensityOfStates
+
+This opens a Density of States object.
+"""
+function load_density_of_states(filename::String)::DensityOfStates
+    open(filename, "r") do file
+        return deserialize(file)
+    end
+end
