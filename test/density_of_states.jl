@@ -1,5 +1,6 @@
 using Test
 using MinkowskiFunctionals
+using Distributions
 
 const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
@@ -32,4 +33,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test 1.0 ≈ sum(pdf(P_P))
     P_χ = marginalize(P, :χ)
     @test 1.0 ≈ sum(pdf(P_χ))
+
+    p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+    P_A_from_binomial = Binomial(n^2, p)
+
+    @test support(P_A_from_binomial) == support(P_A)
+    @test (pdf(P_A_from_binomial) .≈ pdf(P_A)) == ones(Int, 10)
 end
