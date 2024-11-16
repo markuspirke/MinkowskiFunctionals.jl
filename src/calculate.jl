@@ -33,7 +33,7 @@ function MinkowskiFunctional(x::T, bs=bases, fs=functionals) where T <: Abstract
         end
     end
 
-   return MinkowskiFunctional(A, P, χ)
+   return MinkowskiFunctional(Int(A), Int(P), Int(χ))
 end
 
 MinkowskiFunctional(x::BWMap) = MinkowskiFunctional(x.pixels)
