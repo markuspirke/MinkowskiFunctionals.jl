@@ -12,7 +12,7 @@ using StatsBase
 
 
 export CountsMap, BWMap, MinkowskiFunctional,
-    PoissonMinkowskiDistributions, DensityOfStates,
+    PoissonMinkowskiDistributions, DensityOfStates, MinkowskiDistribution, pdf, marginalize,
     save_density_of_states, load_density_of_states,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
     MinkowskiMap, deviation_strength

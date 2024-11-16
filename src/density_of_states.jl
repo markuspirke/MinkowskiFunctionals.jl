@@ -31,6 +31,7 @@ end
 Base.getindex(Ω::DensityOfStates, key::K) where {K} =
     get(Ω.data, key, 0)
 
+Base.length(Ω::DensityOfStates) = length(Ω.data)
 
 """
     function save_density_of_states(dos::DensityOfStates, filename::String)
@@ -52,4 +53,52 @@ function load_density_of_states(filename::String)::DensityOfStates
     open(filename, "r") do file
         return deserialize(file)
     end
+end
+
+
+struct MinkowskiDistribution
+    n
+    λ
+    ρ
+    P
+    function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
+        p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+
+        distribution = Accumulator{MinkowskiFunctional, Float64}()
+
+        for (key, value) in Ω.data
+            distribution[key] += value * p^key.A * (1 - p)^(Ω.n^2 - key.A)
+        end
+
+        new(Ω.n, λ, ρ, distribution)
+    end
+end
+
+function Base.show(io::IO, P::MinkowskiDistribution)
+    print(io, "Minkowski distribution for n=$(P.n), λ=$(P.λ) and ρ=$(P.ρ).")
+end
+
+function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
+    return d.P[f]
+end
+
+function Distributions.pdf(d::MinkowskiDistribution)
+    return [d.P[key] for (key, value) in d.P]
+end
+
+function deviation_strength(h0_distribution::MinkowskiDistribution, x)
+    p = pdf(h0_distribution, x)
+    mask = pdf(h0_distribution) .<= p
+    return -log10(sum(pdf(h0_distribution)[mask]))
+end
+
+function marginalize(P::MinkowskiDistribution, field)
+    marginalized_distribution = Accumulator{Int64, Float64}()
+
+    for (x, p) in P.P
+        marginalized_distribution[getfield(x, field)] += p
+    end
+
+
+    DiscreteNonParametric(collect(keys(marginalized_distribution)), collect(values(marginalized_distribution)))
 end
