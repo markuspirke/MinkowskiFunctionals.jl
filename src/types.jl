@@ -1,5 +1,5 @@
 struct CountsMap
-    pixels
+    pixels::Matrix{Int64}
 end
 
 function CountsMap(d::FullNormal, n, N)
@@ -10,7 +10,7 @@ function CountsMap(d::FullNormal, n, N)
 end
 
 struct BWMap
-    ρ
+    ρ::Int64
     pixels::Matrix{Bool}
 end
 
@@ -25,9 +25,9 @@ end
 This is a data type for MinkowskiFunctionals.
 """
 struct MinkowskiFunctional
-    A
-    P
-    χ
+    A::Int64
+    P::Int64
+    χ::Int64
 end
 
 function Base.show(io::IO, m::MinkowskiFunctional)

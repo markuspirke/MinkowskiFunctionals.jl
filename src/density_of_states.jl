@@ -1,6 +1,6 @@
 struct DensityOfStates
     n
-    data::Accumulator{MinkowskiFunctional, Int64}
+    data::Accumulator{MinkowskiFunctional, Integer}
 end
 
 """
@@ -61,10 +61,10 @@ end
 
 
 struct MinkowskiDistribution
-    n
-    λ
-    ρ
-    P
+    n::Int
+    λ::Int
+    ρ::Int
+    P::Accumulator
     function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
         p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
 
@@ -87,13 +87,14 @@ function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
 end
 
 function Distributions.pdf(d::MinkowskiDistribution)
-    return [d.P[key] for (key, value) in d.P]
+    return collect(values(d.P))
 end
 
-function deviation_strength(h0_distribution::MinkowskiDistribution, x)
+function deviation_strength(h0_distribution::MinkowskiDistribution, x::MinkowskiFunctional)
     p = pdf(h0_distribution, x)
-    mask = pdf(h0_distribution) .<= p
-    return -log10(sum(pdf(h0_distribution)[mask]))
+    ps = pdf(h0_distribution)
+    mask = ps .<= p
+    return -log10(sum(ps[mask]))
 end
 
 function marginalize(P::MinkowskiDistribution, field)
