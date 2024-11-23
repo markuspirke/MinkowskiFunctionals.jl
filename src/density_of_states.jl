@@ -1,5 +1,5 @@
 struct DensityOfStates
-    n
+    n::Int
     data::Accumulator{MinkowskiFunctional, Number}
 end
 
@@ -199,7 +199,7 @@ Then the density of states is calculated from the files inside the directory.
 """
 function DensityOfStates(dirname::AbstractString)
     pattern = r"(.)x(.)"
-    n = match(pattern, dirname)[1]
+    n = parse(Int, match(pattern, dirname)[1])
     fnames = readdir(dirname, join=true)
     counterX = Accumulator{MinkowskiFunctional, IntX}()
     for fname in fnames

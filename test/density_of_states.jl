@@ -75,4 +75,11 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     counter = convert_counter(BigInt, counter_X)
     @test counter[MinkowskiFunctional(32, 100, 11)] == 249742879594441290000000000000000000
     @test counter[MinkowskiFunctional(170, 200, -20)] == 2224663333316845300000000000000000000000000000000000
+
+
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    @test Ω.n == 5
+    @test Ω.data[MinkowskiFunctional(2, 6, 1)] == 40
+    @test Ω.data[MinkowskiFunctional(2, 8, 1)] == 32
+    @test Ω.data[MinkowskiFunctional(2, 8, 2)] == 228
 end
