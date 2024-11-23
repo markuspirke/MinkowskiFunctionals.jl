@@ -1,6 +1,6 @@
 struct DensityOfStates
     n
-    data::Accumulator{MinkowskiFunctional, Integer}
+    data::Accumulator{MinkowskiFunctional, Number}
 end
 
 """
@@ -106,4 +106,111 @@ function marginalize(P::MinkowskiDistribution, field)
 
 
     DiscreteNonParametric(collect(keys(marginalized_distribution)), collect(values(marginalized_distribution)))
+end
+
+"""
+    function add_functionals!(counter::Accumulator{MinkowskiFunctional, T}, fname::AbstractString) where {T<:Number}
+
+This reads a density of states .dat file and updates a given counter.
+"""
+function add_functionals!(counter::Accumulator{MinkowskiFunctional, T}, fname::AbstractString) where {T<:Number}
+    open(fname, "r") do f
+        A = split(split(fname, "_A_")[end], "_")[1]
+        A = parse(Int64, A)
+        for line in eachline(f)
+            x = replace(line, r"  +" => ' ')
+            if occursin("e", x)
+                x = split(x, " ")
+                P, χ, N = x[end-2], x[end-1], x[end]
+                P, χ, N = parse(T, P), parse(T, χ), parse(Float64, N)
+                N = round(T, N)
+                functional = MinkowskiFunctional(A, P, χ)
+                counter[functional] += N
+            else
+                x = split(x, " ")
+                P, χ, N = x[end-2], x[end-1], x[end]
+                P, χ, N = parse(T, P), parse(T, χ), parse(T, N)
+                functional = MinkowskiFunctional(A, P, χ)
+                counter[functional] += N
+            end
+        end
+    end
+end
+
+"""
+    function add_functionals!(counter::Accumulator{MinkowskiFunctional, IntX}, fname::AbstractString)
+
+This reads a density of states .dat file and updates a given counter.
+"""
+function add_functionals!(counter::Accumulator{MinkowskiFunctional, IntX}, fname::AbstractString)
+    open(fname, "r") do f
+        A = split(split(fname, "_A_")[end], "_")[1]
+        A = parse(Int64, A)
+        for line in eachline(f)
+            x = replace(line, r"  +" => ' ')
+            x = split(x, " ")
+            P, χ, N = x[end-2], x[end-1], x[end]
+            P, χ = parse(Int, P), parse(Int, χ)
+            if occursin("e+", N)
+                base, exp = split(N, "e+")
+                exp = parse(Int, exp)
+                if length(base)-2 < exp
+                    exp = exp - (length(base) - 2)
+                    base = parse(Int, replace(base, r"\." => ""))
+                    N = IntX(base, exp)
+                else
+                    base = round(parse(Float64, base), digits=exp)
+                    base = floor(Int, base*10^exp)
+                    exp = 0
+                    N = IntX(base, exp)
+                end
+            elseif occursin("e-", N)
+                base = Int(round(parse(Float64, N), digits=1))
+                exp = 0
+                N = IntX(base, exp)
+            else
+                base = parse(Int, N)
+                exp = 0
+                N = IntX(base, exp)
+            end
+            functional = MinkowskiFunctional(A, P, χ)
+            counter[functional] += N
+        end
+    end
+end
+
+"""
+    function convert_counter(T::Type{S}, counter::Accumulator{MinkowskiFunctional, IntX}) where {S<:Number}
+
+This converts a Counter of IntX to the best Int counter.
+"""
+function convert_counter(T::Type{S}, counter::Accumulator{MinkowskiFunctional, IntX}) where {S<:Number}
+    new_counter = Accumulator{MinkowskiFunctional, T}()
+    for (key, value) in counter
+        new_counter[key] += convert(T, value)
+    end
+    return new_counter
+end
+"""
+    function DensityOfStates(dirname::AbstractString)
+
+This takes the path to one of the directories inside the parameters directory.
+Then the density of states is calculated from the files inside the directory.
+"""
+function DensityOfStates(dirname::AbstractString)
+    pattern = r"(.)x(.)"
+    n = match(pattern, dirname)[1]
+    fnames = readdir(dirname, join=true)
+    counterX = Accumulator{MinkowskiFunctional, IntX}()
+    for fname in fnames
+        add_functionals!(counterX, fname)
+    end
+    max_exp = 16 * maximum(getfield.(collect(values(counterX)), :exp))
+    if max_exp < length(digits(typemax(Int64)))
+        return DensityOfStates(n, convert_counter(Int64, counterX))
+    elseif max_exp < length(digits(typemax(Int128)))
+        return DensityOfStates(n, convert_counter(Int128, counterX))
+    else
+        return DensityOfStates(n, convert_counter(BigInt, counterX))
+    end
 end
