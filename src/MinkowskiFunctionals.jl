@@ -1,7 +1,7 @@
 module MinkowskiFunctionals
 
 using Base.Threads
-import Base: getindex
+import Base: getindex, +
 using Distributions
 using DataStructures
 using Serialization
@@ -11,7 +11,7 @@ using StaticArrays
 using StatsBase
 
 
-export CountsMap, BWMap, MinkowskiFunctional,
+export CountsMap, BWMap, MinkowskiFunctional, IntX,
     PoissonMinkowskiDistributions, DensityOfStates, MinkowskiDistribution, pdf, marginalize,
     save_density_of_states, load_density_of_states,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
