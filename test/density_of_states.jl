@@ -82,4 +82,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test Ω.data[MinkowskiFunctional(2, 6, 1)] == 40
     @test Ω.data[MinkowskiFunctional(2, 8, 1)] == 32
     @test Ω.data[MinkowskiFunctional(2, 8, 2)] == 228
+
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_10x10"))
+    @test Ω.n == 10
 end
