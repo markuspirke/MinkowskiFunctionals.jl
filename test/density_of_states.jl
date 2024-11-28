@@ -2,6 +2,7 @@ using Test
 using MinkowskiFunctionals
 using Distributions
 using DataStructures
+using HDF5
 
 const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
@@ -44,6 +45,9 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test support(P_A_from_binomial) == support(P_A)
     @test (pdf(P_A_from_binomial) .≈ pdf(P_A)) == ones(Int, 10)
 
+
+    # TO READ MICHAEL KLATT PRECALCULATED DOS
+
     counter = Accumulator{MinkowskiFunctional, Int64}()
     add_functionals!(counter, joinpath(SAMPLES_DIR, "DoS_averaged_A_2_PC_pix_wbc_5x5_seed_0_seedwght_0.dat"))
 
@@ -85,4 +89,25 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_10x10"))
     @test Ω.n == 10
+
+    # MINKOWSKI DEVIATION STRENGTH
+    counter = Accumulator{MinkowskiFunctional, Float64}()
+    counter[MinkowskiFunctional(0,0,0)] = 0.2
+    counter[MinkowskiFunctional(1,0,0)] = 0.2
+    counter[MinkowskiFunctional(2,0,0)] = 0.6
+    D = MinkowskiDistribution(1, 1, 1, counter)
+    @test deviation_strength(D, MinkowskiFunctional(0,0,0)) ≈ -log10(0.4)
+
+    d_strengths = deviation_strength(D)
+    @test d_strengths[MinkowskiFunctional(0, 0, 0)] ≈ -log10(0.4)
+    @test d_strengths[MinkowskiFunctional(1, 0, 0)] ≈ -log10(0.4)
+    @test d_strengths[MinkowskiFunctional(2, 0, 0)] ≈ 0.0
+
+    h5open(joinpath(SAMPLES_DIR, "deviation_strength.h5"), "w") do h5f
+        save_deviation!(h5f, D)
+    end
+
+    loaded_d_strengths = load_deviation(joinpath(SAMPLES_DIR, "deviation_strength.h5"), 1, 1, 1)
+    @test d_strengths == loaded_d_strengths[1].D
+
 end

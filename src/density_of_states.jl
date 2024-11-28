@@ -65,17 +65,18 @@ struct MinkowskiDistribution
     λ::Int
     ρ::Int
     P::Accumulator
-    function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
-        p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+end
 
-        distribution = Accumulator{MinkowskiFunctional, Float64}()
+function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
+    p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
 
-        for (key, value) in Ω.data
-            distribution[key] += value * p^key.A * (1 - p)^(Ω.n^2 - key.A)
-        end
+    distribution = Accumulator{MinkowskiFunctional, Float64}()
 
-        new(Ω.n, λ, ρ, distribution)
+    for (key, value) in Ω.data
+        distribution[key] += value * p^key.A * (1 - p)^(Ω.n^2 - key.A)
     end
+
+    MinkowskiDistribution(Ω.n, λ, ρ, distribution)
 end
 
 function Base.show(io::IO, P::MinkowskiDistribution)
@@ -90,11 +91,75 @@ function Distributions.pdf(d::MinkowskiDistribution)
     return collect(values(d.P))
 end
 
+
+"""
+    function deviation_strength(h0_distribution::MinkowskiDistribution, x::MinkowskiFunctional)
+
+This calculates the deviation strength for a given H0 distribution
+for the given Minkowski functional x.
+"""
 function deviation_strength(h0_distribution::MinkowskiDistribution, x::MinkowskiFunctional)
     p = pdf(h0_distribution, x)
     ps = pdf(h0_distribution)
     mask = ps .<= p
     return -log10(sum(ps[mask]))
+end
+
+"""
+    function deviation_strength(h0_distribution::MinkowskiDistribution)
+
+This calculates precomputes the deviation strength for a given H0 distribution
+for all possbile Minkowski functionals.
+"""
+function deviation_strength(h0_distribution::MinkowskiDistribution)
+    cdf = deepcopy(h0_distribution.P)
+    ps = pdf(h0_distribution)
+    for (key,value) in h0_distribution.P
+        p = pdf(h0_distribution, key)
+        mask = ps .<= p
+        cdf[key] = -log10(sum(ps[mask]))
+    end
+
+    return cdf
+end
+
+function save_deviation!(h5f, h0_distribution::MinkowskiDistribution)
+    n = h0_distribution.n
+    λ = h0_distribution.λ
+    ρ = h0_distribution.ρ
+    cdf = deviation_strength(h0_distribution)
+    write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", [MinkowskiFunctionalIO(k, v) for (k,v) in cdf])
+end
+
+struct MinkowskiFunctionalIO
+    A::Int64
+    P::Int64
+    χ::Int64
+    D::Float64
+    MinkowskiFunctionalIO(functional::MinkowskiFunctional, D::Float64) = new(functional.A, functional.P, functional.χ, D)
+end
+
+function load_deviation(fname, n, λ, ρs)
+    h5open(fname, "r") do h5f
+        Ds = MinkowskiDeviationStrength[]
+        for (i, ρ) in enumerate(ρs)
+            counter = Accumulator{MinkowskiFunctional, Float64}()
+            xs = read(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])
+            for x in xs
+                counter[MinkowskiFunctional(x.A, x.P, x.χ)] = x.D
+            end
+            # @show "WUF"
+            push!(Ds, MinkowskiDeviationStrength(n, λ, ρ, counter))
+        end
+        return Ds
+    end
+end
+
+struct MinkowskiDeviationStrength
+    n::Int64
+    λ::Int64
+    ρ::Int64
+    D::Accumulator{MinkowskiFunctional, Float64}
 end
 
 function marginalize(P::MinkowskiDistribution, field)
