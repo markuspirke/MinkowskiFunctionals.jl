@@ -1,7 +1,7 @@
 module MinkowskiFunctionals
 
 using Base.Threads
-import Base: getindex, +
+import Base: getindex, +, append!
 using Distributions
 using DataStructures
 using Serialization
@@ -10,24 +10,26 @@ using Random
 using StaticArrays
 using StatsBase
 using HDF5
+using ProgressMeter
+using Dates
 
 
-export CountsMap, BWMap, MinkowskiFunctional, IntX,
+export CountsMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
     PoissonMinkowskiDistributions, DensityOfStates, MinkowskiDistribution, pdf, marginalize,
-    add_functionals!, MinkowskiDeviationStrength,
+    add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap, deviation_strength, save_deviation!, load_deviation,
-    deviation2σ
+    MinkowskiMap
 
 
 include("types.jl")
+include("utils.jl")
 include("calculate.jl")
 include("generate.jl")
 include("density_of_states.jl")
+include("distributions.jl")
 include("sampling.jl")
 include("minkwoski_map.jl")
-include("utils.jl")
 
 
 end
