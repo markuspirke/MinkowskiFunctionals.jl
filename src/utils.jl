@@ -1,9 +1,18 @@
 """
-    function deviation2σ(D)
+    function p2σ(D)
 
-Converts deviation strenght to a significance as given in σ of a unit Gaussian.
+Converts a probability to a significance as given in σ of a unit Gaussian.
 """
-function deviation2σ(D)
-	p = 1 - 10^(-D)
-	return quantile(Normal(0, 1), 1/2+p/2) # till p=0.5 we have 0, then go for half of p again
+function p2σ(p)
+	q = 1 - p
+	return quantile(Normal(0, 1), 1/2+q/2) # till p=0.5 we have 0, then go for half of p again
+end
+
+"""
+    function σ2p(D)
+
+Converts a a significance as given in σ of a unit Gaussian to a probability.
+"""
+function σ2p(σ)
+	1 - 2 * (cdf(Normal(0, 1), σ) - 0.5)
 end
