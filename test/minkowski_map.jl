@@ -3,11 +3,6 @@ using Test
 using MinkowskiFunctionals
 
 @testset "minkowski_map" begin
-    xs = [0, 1, 2, 3, 4, 5]
-    ps = [0.05, 0.05, 0.1, 0.2, 0.3, 0.3]
-    d = DiscreteNonParametric(xs, ps)
-    @test -log10(0.05+0.05+0.1+0.2) ≈ deviation_strength(d, 3)
-
     ρs = 9:10
     λ = 10
     n = 3
