@@ -34,17 +34,61 @@ using Test
     @test compatibility(D, MinkowskiFunctional(1,0,0)) ≈ 1.0 # in sigma
     @test compatibility(D, MinkowskiFunctional(2,0,0)) ≈ 0.0 # in sigma
 
-
-
     h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "w") do h5f
         append!(h5f, D)
     end
 
     D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 1, 1, 1)
+    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
+    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
     @test D.n == D_loaded.n
     @test D.λ == D_loaded.λ
     @test D.ρ == D_loaded.ρ
     @test D.P == D_loaded.P
     @test D.σ == D_loaded.σ
 
+    # CHECK WHETHER APPENDING ALSO WORKS
+    D = MinkowskiDistribution(2, 1, 1, p_counter)
+
+    h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "cw") do h5f
+        append!(h5f, D)
+        @test parse.(Int, keys(h5f)) == [1, 2]
+    end
+
+    D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 1, 1)
+    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
+    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test D.n == D_loaded.n
+    @test D.λ == D_loaded.λ
+    @test D.ρ == D_loaded.ρ
+    @test D.P == D_loaded.P
+    @test D.σ == D_loaded.σ
+
+    D = MinkowskiDistribution(2, 2, 1, p_counter)
+    h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "cw") do h5f
+        append!(h5f, D)
+        @test parse.(Int, keys(h5f)) == [1, 2]
+    end
+    D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 2, 1)
+    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
+    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test D.n == D_loaded.n
+    @test D.λ == D_loaded.λ
+    @test D.ρ == D_loaded.ρ
+    @test D.P == D_loaded.P
+    @test D.σ == D_loaded.σ
+
+    D = MinkowskiDistribution(2, 2, 2, p_counter)
+    h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "cw") do h5f
+        append!(h5f, D)
+        @test parse.(Int, keys(h5f)) == [1, 2]
+    end
+    D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 2, 2)
+    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
+    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test D.n == D_loaded.n
+    @test D.λ == D_loaded.λ
+    @test D.ρ == D_loaded.ρ
+    @test D.P == D_loaded.P
+    @test D.σ == D_loaded.σ
 end

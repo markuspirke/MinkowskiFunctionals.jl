@@ -51,7 +51,7 @@ function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
     # @showprogress for (key,p) in distribution
     #     # p = distribution[key]
     #     mask = ps .<= p
-    #     c_distribution[key] = p2σ(sum(ps[mask]))
+    #     c_distribution[key] = sum(ps[mask])
     # end
 
     MinkowskiDistribution(Ω.n, λ, ρ, distribution, c_distribution)
@@ -76,24 +76,57 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
     n = distribution.n
     λ = distribution.λ
     ρ = distribution.ρ
-    xs = @NamedTuple{A::Int64, P::Int64, χ::Int64, D::Float64, σ::Float64}[]
-    field_names = (:A, :P, :χ, :D, :σ)
-    for k in collect(keys(distribution.P))
-        push!(xs, NamedTuple{field_names}((k.A, k.P, k.χ, distribution.P[k], distribution.σ[k])))
+
+    if n in parse.(Int, keys(h5f))
+        println("Macrostates for system size $(n) already exist.")
+        if λ in parse.(Int, getindex.(split.(filter(x -> occursin("=", x), keys(h5f["$(n)"])), "="), 2))
+            println("Background already exists.")
+            if ρ in parse.(Int, getindex.(split.(keys(h5f["$(n)/λ=$(λ)"]), "="), 2))
+                println("Treshold already exists. No changes are applied.")
+            else
+                ps = collect(values(distribution.P))
+                σs = collect(values(distribution.σ))
+                xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+                write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+                attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+            end
+        else
+            ps = collect(values(distribution.P))
+            σs = collect(values(distribution.σ))
+            xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+            write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+            attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+        end
+    else
+        println("Macrostates do not yet exist. Generating them.")
+        write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.σ)))
+        ps = collect(values(distribution.P))
+        σs = collect(values(distribution.σ))
+        xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+
+        write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+        attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
     end
-    write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
-    attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
 end
+#     xs = @NamedTuple{A::Int64, P::Int64, χ::Int64, D::Float64, σ::Float64}[]
+#     field_names = (:A, :P, :χ, :D, :σ)
+#     for k in collect(keys(distribution.P))
+#         push!(xs, NamedTuple{field_names}((k.A, k.P, k.χ, distribution.P[k], distribution.σ[k])))
+#     end
+#     write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+#     attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+# end
 
 function MinkowskiDistribution(fname::AbstractString, n::Int64, λ::Int64, ρ::Int64)
     h5open(fname, "r") do h5f
         d_counter = Accumulator{MinkowskiFunctional, Float64}()
         σ_counter = Accumulator{MinkowskiFunctional, Float64}()
 
-        xs = read(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])
-        for x in xs
-            d_counter[MinkowskiFunctional(x.A, x.P, x.χ)] = x.D
-            σ_counter[MinkowskiFunctional(x.A, x.P, x.χ)] = x.σ
+        functionals = read(h5f["$(n)/macrostates"])
+        xs = read(h5f["$n/λ=$λ/ρ=$ρ"])
+        for (f, x) in zip(functionals, xs)
+            d_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[1]
+            σ_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
         end
 
         MinkowskiDistribution(n, λ, ρ, d_counter, σ_counter)
