@@ -38,28 +38,6 @@ function Base.show(io::IO, Ω::DensityOfStates)
 end
 
 """
-    function save_density_of_states(dos::DensityOfStates, filename::String)
-
-This saves a Density of States object.
-"""
-function save_density_of_states(dos::DensityOfStates, filename::String)
-    open(filename, "w") do file
-        serialize(file, dos)
-    end
-end
-
-"""
-    function load_density_of_states(filename::String)::DensityOfStates
-
-This opens a Density of States object.
-"""
-function load_density_of_states(filename::String)::DensityOfStates
-    open(filename, "r") do file
-        return deserialize(file)
-    end
-end
-
-"""
     function add_functionals!(counter::Accumulator{MinkowskiFunctional, T}, fname::AbstractString) where {T<:Number}
 
 This reads a density of states .dat file and updates a given counter.
