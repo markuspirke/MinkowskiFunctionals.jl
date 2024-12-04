@@ -4,7 +4,6 @@ using Base.Threads
 import Base: getindex, +, append!
 using Distributions
 using DataStructures
-using Serialization
 using PaddedViews
 using Random
 using StaticArrays
