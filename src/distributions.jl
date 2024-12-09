@@ -8,8 +8,8 @@ struct MinkowskiDistribution
     n::Int
     λ::Int
     ρ::Int
-    P::Accumulator
-    σ::Accumulator
+    p::Accumulator
+    α::Accumulator
 
 end
 
@@ -19,7 +19,7 @@ function MinkowskiDistribution(n, λ, ρ, distribution::Accumulator)
     for (key,value) in distribution # THIS IS NOT YET PERFECT, BECAUSE I DO NOT WANT TO USE IT
         p = distribution[key]
         mask = ps .<= p
-        c_distribution[key] = p2σ(sum(ps[mask]))
+        c_distribution[key] = sum(ps[mask])
     end
 
     MinkowskiDistribution(n, λ, ρ, distribution, c_distribution)
@@ -44,7 +44,7 @@ function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
     ps_perm = sortperm(ps) # THIS IS PROVISIONALLY
     ps = ps[ps_perm]
     c_ps = cumsum(ps)
-    new_ps = p2σ.(c_ps[invperm(ps_perm)])
+    new_ps = c_ps[invperm(ps_perm)]
     for (i, key) in enumerate(keys(c_distribution))
         c_distribution[key] = new_ps[i]
     end
@@ -62,14 +62,14 @@ function Base.show(io::IO, P::MinkowskiDistribution)
 end
 
 function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
-    return d.P[f]
+    return d.p[f]
 end
 
 function Distributions.pdf(d::MinkowskiDistribution)
-    return collect(values(d.P))
+    return collect(values(d.p))
 end
 
-compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional) = d.σ[f]
+compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional) = d.α[f]
 
 
 function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
@@ -84,32 +84,32 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
             if ρ in parse.(Int, getindex.(split.(keys(h5f["$(n)/λ=$(λ)"]), "="), 2))
                 # println("Treshold already exists. No changes are applied.")
             else
-                ps = collect(values(distribution.P))
-                σs = collect(values(distribution.σ))
-                xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+                ps = collect(values(distribution.p))
+                αs = collect(values(distribution.α))
+                xs = [(p, α) for (p, α) in zip(ps, αs)]
                 write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
                 attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
             end
         else
-            ps = collect(values(distribution.P))
-            σs = collect(values(distribution.σ))
-            xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+            ps = collect(values(distribution.p))
+            αs = collect(values(distribution.α))
+            xs = [(p, α) for (p, α) in zip(ps, αs)]
             write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
             attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
         end
     else
         # println("Macrostates do not yet exist. Generating them.")
-        write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.σ)))
-        ps = collect(values(distribution.P))
-        σs = collect(values(distribution.σ))
-        xs = [(p, σ) for (p, σ) in zip(ps, σs)]
+        write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.α)))
+        ps = collect(values(distribution.p))
+        αs = collect(values(distribution.α))
+        xs = [(p, α) for (p, α) in zip(ps, αs)]
 
         write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
         attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
     end
 end
 #     xs = @NamedTuple{A::Int64, P::Int64, χ::Int64, D::Float64, σ::Float64}[]
-#     field_names = (:A, :P, :χ, :D, :σ)
+#     field_names = (:A, :P, :χ, :D, :α)
 #     for k in collect(keys(distribution.P))
 #         push!(xs, NamedTuple{field_names}((k.A, k.P, k.χ, distribution.P[k], distribution.σ[k])))
 #     end
@@ -120,31 +120,31 @@ end
 function MinkowskiDistribution(fname::AbstractString, n::Int64, λ::Int64, ρ::Int64)
     h5open(fname, "r") do h5f
         d_counter = Accumulator{MinkowskiFunctional, Float64}()
-        σ_counter = Accumulator{MinkowskiFunctional, Float64}()
+        α_counter = Accumulator{MinkowskiFunctional, Float64}()
 
         functionals = read(h5f["$(n)/macrostates"])
         xs = read(h5f["$n/λ=$λ/ρ=$ρ"])
         for (f, x) in zip(functionals, xs)
             d_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[1]
-            σ_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
+            α_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
         end
 
-        MinkowskiDistribution(n, λ, ρ, d_counter, σ_counter)
+        MinkowskiDistribution(n, λ, ρ, d_counter, α_counter)
     end
 end
 
 function MinkowskiDistribution(h5f::HDF5.File, n::Int64, λ::Int64, ρ::Int64)
     d_counter = Accumulator{MinkowskiFunctional, Float64}()
-    σ_counter = Accumulator{MinkowskiFunctional, Float64}()
+    α_counter = Accumulator{MinkowskiFunctional, Float64}()
 
     functionals = read(h5f["$(n)/macrostates"])
     xs = read(h5f["$n/λ=$λ/ρ=$ρ"])
     for (f, x) in zip(functionals, xs)
         d_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[1]
-        σ_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
+        α_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
     end
 
-    MinkowskiDistribution(n, λ, ρ, d_counter, σ_counter)
+    MinkowskiDistribution(n, λ, ρ, d_counter, α_counter)
 end
 
 function marginalize(P::MinkowskiDistribution, fields)
@@ -158,23 +158,23 @@ function marginalize(P::MinkowskiDistribution, fields)
     new_fields = Tuple(new_fields)
     counter_P = Accumulator{NamedTuple{new_fields}, Float64}()
 
-    for k in keys(P.P)
+    for k in keys(P.p)
         k_reduced = reduce_functional(k, new_fields)
-        counter_P[k_reduced] += P.P[k]
+        counter_P[k_reduced] += P.p[k]
     end
 
-    counter_σ =  deepcopy(counter_P)
+    counter_α =  deepcopy(counter_P)
     ps = collect(values(counter_P))
     ps_perm = sortperm(ps) # THIS IS PROVISIONALLY
     ps = ps[ps_perm]
     c_ps = cumsum(ps)
-    new_ps = p2σ.(c_ps[invperm(ps_perm)])
-    for (i, key) in enumerate(keys(counter_σ))
-        counter_σ[key] = new_ps[i]
+    new_ps = c_ps[invperm(ps_perm)]
+    for (i, key) in enumerate(keys(counter_α))
+        counter_α[key] = new_ps[i]
     end
 
 
-    return MinkowskiDistribution(P.n, P.λ, P.ρ, counter_P, counter_σ)
+    return MinkowskiDistribution(P.n, P.λ, P.ρ, counter_P, counter_α)
 end
 
 function reduce_functional(functional::MinkowskiFunctional, fields::T) where T<:Tuple

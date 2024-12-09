@@ -20,22 +20,22 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     p_counter[MinkowskiFunctional(2,0,0)] = 0.6826894921370861
 
     D = MinkowskiDistribution(1, 1, 1, p_counter)
-    @test compatibility(D, MinkowskiFunctional(0,0,0)) ≈ 1.0 # in sigma
-    @test compatibility(D, MinkowskiFunctional(1,0,0)) ≈ 1.0 # in sigma
-    @test compatibility(D, MinkowskiFunctional(2,0,0)) ≈ 0.0 # in sigma
+    @test p2σ(compatibility(D, MinkowskiFunctional(0,0,0))) ≈ 1.0 # in sigma
+    @test p2σ(compatibility(D, MinkowskiFunctional(1,0,0))) ≈ 1.0 # in sigma
+    @test p2σ(compatibility(D, MinkowskiFunctional(2,0,0))) ≈ 0.0 # in sigma
 
     h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "w") do h5f
         append!(h5f, D)
     end
 
     D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 1, 1, 1)
-    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
-    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test collect(keys(D.p)) == collect(keys(D_loaded.p))
+    @test collect(keys(D.α)) == collect(keys(D_loaded.α))
     @test D.n == D_loaded.n
     @test D.λ == D_loaded.λ
     @test D.ρ == D_loaded.ρ
-    @test D.P == D_loaded.P
-    @test D.σ == D_loaded.σ
+    @test D.p == D_loaded.p
+    @test D.α == D_loaded.α
 
     # CHECK WHETHER APPENDING ALSO WORKS
     D = MinkowskiDistribution(2, 1, 1, p_counter)
@@ -46,13 +46,13 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     end
 
     D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 1, 1)
-    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
-    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test collect(keys(D.p)) == collect(keys(D_loaded.p))
+    @test collect(keys(D.α)) == collect(keys(D_loaded.α))
     @test D.n == D_loaded.n
     @test D.λ == D_loaded.λ
     @test D.ρ == D_loaded.ρ
-    @test D.P == D_loaded.P
-    @test D.σ == D_loaded.σ
+    @test D.p == D_loaded.p
+    @test D.α == D_loaded.α
 
     D = MinkowskiDistribution(2, 2, 1, p_counter)
     h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "cw") do h5f
@@ -60,13 +60,13 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         @test parse.(Int, keys(h5f)) == [1, 2]
     end
     D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 2, 1)
-    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
-    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test collect(keys(D.p)) == collect(keys(D_loaded.p))
+    @test collect(keys(D.α)) == collect(keys(D_loaded.α))
     @test D.n == D_loaded.n
     @test D.λ == D_loaded.λ
     @test D.ρ == D_loaded.ρ
-    @test D.P == D_loaded.P
-    @test D.σ == D_loaded.σ
+    @test D.p == D_loaded.p
+    @test D.α == D_loaded.α
 
     D = MinkowskiDistribution(2, 2, 2, p_counter)
     h5open(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), "cw") do h5f
@@ -74,13 +74,13 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         @test parse.(Int, keys(h5f)) == [1, 2]
     end
     D_loaded = MinkowskiDistribution(joinpath(SAMPLES_DIR, "test_lookuptable.h5"), 2, 2, 2)
-    @test collect(keys(D.P)) == collect(keys(D_loaded.P))
-    @test collect(keys(D.σ)) == collect(keys(D_loaded.σ))
+    @test collect(keys(D.p)) == collect(keys(D_loaded.p))
+    @test collect(keys(D.α)) == collect(keys(D_loaded.α))
     @test D.n == D_loaded.n
     @test D.λ == D_loaded.λ
     @test D.ρ == D_loaded.ρ
-    @test D.P == D_loaded.P
-    @test D.σ == D_loaded.σ
+    @test D.p == D_loaded.p
+    @test D.α == D_loaded.α
 
     #TEST MARGINAL DISTRIBUTIONS
     p_counter = Accumulator{MinkowskiFunctional, Float64}()
@@ -90,16 +90,16 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     p_counter[MinkowskiFunctional(1,1,0)] = 0.4
     D = MinkowskiDistribution(1, 1, 1, p_counter)
 
-    @test 0.1 ≈ σ2p(D.σ[MinkowskiFunctional(0,0,0)])
-    @test 0.3 ≈ σ2p(D.σ[MinkowskiFunctional(0,1,0)])
-    @test 0.6 ≈ σ2p(D.σ[MinkowskiFunctional(1,0,0)])
-    @test 1.0 ≈ σ2p(D.σ[MinkowskiFunctional(1,1,0)])
+    @test 0.1 ≈ D.α[MinkowskiFunctional(0,0,0)]
+    @test 0.3 ≈ D.α[MinkowskiFunctional(0,1,0)]
+    @test 0.6 ≈ D.α[MinkowskiFunctional(1,0,0)]
+    @test 1.0 ≈ D.α[MinkowskiFunctional(1,1,0)]
 
     D_A = marginalize(D, (:P, :χ))
-    @test 0.3 ≈ D_A.P[(A =0,)]
-    @test 0.7 ≈ D_A.P[(A =1,)]
-    @test 0.3 ≈ σ2p(D_A.σ[(A =0,)])
-    @test 1.0 ≈ σ2p(D_A.σ[(A =1,)])
+    @test 0.3 ≈ D_A.p[(A =0,)]
+    @test 0.7 ≈ D_A.p[(A =1,)]
+    @test 0.3 ≈ D_A.α[(A =0,)]
+    @test 1.0 ≈ D_A.α[(A =1,)]
 
     Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
     D = MinkowskiDistribution(Ω, 10, 10)
@@ -110,14 +110,14 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     ps_equal = Bool[]
     for x in 1:25
-        push!(ps_equal, pdf(D_A_binomial, x) ≈ D_A.P[(A=x,)])
+        push!(ps_equal, pdf(D_A_binomial, x) ≈ D_A.p[(A=x,)])
     end
     @test sum(ps_equal) == 25
 
-    # ps = pdf(D_A_binomial)
-    # σs_equal = Bool[]
-    # for x in 1:25
-    #     push!(σs_equal, round(p2σ(sum(ps[ps .<= pdf(D_A_binomial, x)])), digits=10) ≈ D_A.σ[(A=x,)])
-    # end
-    # @test sum(σs_equal) == 25
+    ps = pdf(D_A_binomial)
+    αs_equal = Bool[]
+    for x in 1:25
+        push!(αs_equal, round(sum(ps[ps .<= pdf(D_A_binomial, x)]), digits=10) ≈ round(D_A.α[(A=x,)], digits=10))
+    end
+    @test sum(αs_equal) == 25
 end
