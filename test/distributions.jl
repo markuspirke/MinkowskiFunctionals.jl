@@ -114,26 +114,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     end
     @test sum(ps_equal) == 25
 
-    ps = pdf(D_A_binomial)
-    σs_equal = Bool[]
-    for x in 1:25
-        push!(σs_equal, round(p2σ(sum(ps[ps .<= pdf(D_A_binomial, x)])), digits=10) ≈ D_A.σ[(A=x,)])
-    end
-    @test sum(σs_equal) == 25
-# p2σ(sum(ps[ps .<= pdf(D_A_binomial, 0)]))
-
-
-
-    # D_A = marginalize(P, :A)
-    # @test 1.0 ≈ sum(pdf(P_A))
-    # P_P = marginalize(P, :P)
-    # @test 1.0 ≈ sum(pdf(P_P))
-    # P_χ = marginalize(P, :χ)
-    # @test 1.0 ≈ sum(pdf(P_χ))
-
-    # p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
-    # P_A_from_binomial = Binomial(n^2, p)
-
-    # @test support(P_A_from_binomial) == support(P_A)
-    # @test (pdf(P_A_from_binomial) .≈ pdf(P_A)) == ones(Int, 10)
+    # ps = pdf(D_A_binomial)
+    # σs_equal = Bool[]
+    # for x in 1:25
+    #     push!(σs_equal, round(p2σ(sum(ps[ps .<= pdf(D_A_binomial, x)])), digits=10) ≈ D_A.σ[(A=x,)])
+    # end
+    # @test sum(σs_equal) == 25
 end
