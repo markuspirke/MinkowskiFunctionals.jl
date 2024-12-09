@@ -78,11 +78,11 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
     ρ = distribution.ρ
 
     if n in parse.(Int, keys(h5f))
-        println("Macrostates for system size $(n) already exist.")
+        # println("Macrostates for system size $(n) already exist.")
         if λ in parse.(Int, getindex.(split.(filter(x -> occursin("=", x), keys(h5f["$(n)"])), "="), 2))
-            println("Background already exists.")
+            # println("Background already exists.")
             if ρ in parse.(Int, getindex.(split.(keys(h5f["$(n)/λ=$(λ)"]), "="), 2))
-                println("Treshold already exists. No changes are applied.")
+                # println("Treshold already exists. No changes are applied.")
             else
                 ps = collect(values(distribution.P))
                 σs = collect(values(distribution.σ))
@@ -98,7 +98,7 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
             attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
         end
     else
-        println("Macrostates do not yet exist. Generating them.")
+        # println("Macrostates do not yet exist. Generating them.")
         write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.σ)))
         ps = collect(values(distribution.P))
         σs = collect(values(distribution.σ))
@@ -133,13 +133,50 @@ function MinkowskiDistribution(fname::AbstractString, n::Int64, λ::Int64, ρ::I
     end
 end
 
-function marginalize(P::MinkowskiDistribution, field)
-    marginalized_distribution = Accumulator{Int64, Float64}()
+function MinkowskiDistribution(h5f::HDF5.File, n::Int64, λ::Int64, ρ::Int64)
+    d_counter = Accumulator{MinkowskiFunctional, Float64}()
+    σ_counter = Accumulator{MinkowskiFunctional, Float64}()
 
-    for (x, p) in P.P
-        marginalized_distribution[getfield(x, field)] += p
+    functionals = read(h5f["$(n)/macrostates"])
+    xs = read(h5f["$n/λ=$λ/ρ=$ρ"])
+    for (f, x) in zip(functionals, xs)
+        d_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[1]
+        σ_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
+    end
+
+    MinkowskiDistribution(n, λ, ρ, d_counter, σ_counter)
+end
+
+function marginalize(P::MinkowskiDistribution, fields)
+    old_fields = (:A, :P, :χ)
+    new_fields = Symbol[]
+    for field in old_fields
+        if !(field in fields)
+            push!(new_fields, field)
+        end
+    end
+    new_fields = Tuple(new_fields)
+    counter_P = Accumulator{NamedTuple{new_fields}, Float64}()
+
+    for k in keys(P.P)
+        k_reduced = reduce_functional(k, new_fields)
+        counter_P[k_reduced] += P.P[k]
+    end
+
+    counter_σ =  deepcopy(counter_P)
+    ps = collect(values(counter_P))
+    ps_perm = sortperm(ps) # THIS IS PROVISIONALLY
+    ps = ps[ps_perm]
+    c_ps = cumsum(ps)
+    new_ps = p2σ.(c_ps[invperm(ps_perm)])
+    for (i, key) in enumerate(keys(counter_σ))
+        counter_σ[key] = new_ps[i]
     end
 
 
-    DiscreteNonParametric(collect(keys(marginalized_distribution)), collect(values(marginalized_distribution)))
+    return MinkowskiDistribution(P.n, P.λ, P.ρ, counter_P, counter_σ)
+end
+
+function reduce_functional(functional::MinkowskiFunctional, fields::T) where T<:Tuple
+    return NamedTuple{fields}(Tuple([getfield(functional, f) for f in fields]))
 end

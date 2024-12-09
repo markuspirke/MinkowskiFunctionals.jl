@@ -2,6 +2,8 @@ using MinkowskiFunctionals
 using Distributions
 using Test
 
+const SAMPLES_DIR = joinpath(@__DIR__, "samples")
+
 @testset "distribution" begin
 
     n, λ, ρ = 3, 10, 10
@@ -10,18 +12,6 @@ using Test
     P = MinkowskiDistribution(Ω, λ, ρ)
     @test 1.0 ≈ sum(pdf(P))
 
-    P_A = marginalize(P, :A)
-    @test 1.0 ≈ sum(pdf(P_A))
-    P_P = marginalize(P, :P)
-    @test 1.0 ≈ sum(pdf(P_P))
-    P_χ = marginalize(P, :χ)
-    @test 1.0 ≈ sum(pdf(P_χ))
-
-    p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
-    P_A_from_binomial = Binomial(n^2, p)
-
-    @test support(P_A_from_binomial) == support(P_A)
-    @test (pdf(P_A_from_binomial) .≈ pdf(P_A)) == ones(Int, 10)
 
     # MINKOWSKI DEVIATION STRENGTH
     p_counter = Accumulator{MinkowskiFunctional, Float64}()
@@ -91,4 +81,59 @@ using Test
     @test D.ρ == D_loaded.ρ
     @test D.P == D_loaded.P
     @test D.σ == D_loaded.σ
+
+    #TEST MARGINAL DISTRIBUTIONS
+    p_counter = Accumulator{MinkowskiFunctional, Float64}()
+    p_counter[MinkowskiFunctional(0,0,0)] = 0.1
+    p_counter[MinkowskiFunctional(0,1,0)] = 0.2
+    p_counter[MinkowskiFunctional(1,0,0)] = 0.3
+    p_counter[MinkowskiFunctional(1,1,0)] = 0.4
+    D = MinkowskiDistribution(1, 1, 1, p_counter)
+
+    @test 0.1 ≈ σ2p(D.σ[MinkowskiFunctional(0,0,0)])
+    @test 0.3 ≈ σ2p(D.σ[MinkowskiFunctional(0,1,0)])
+    @test 0.6 ≈ σ2p(D.σ[MinkowskiFunctional(1,0,0)])
+    @test 1.0 ≈ σ2p(D.σ[MinkowskiFunctional(1,1,0)])
+
+    D_A = marginalize(D, (:P, :χ))
+    @test 0.3 ≈ D_A.P[(A =0,)]
+    @test 0.7 ≈ D_A.P[(A =1,)]
+    @test 0.3 ≈ σ2p(D_A.σ[(A =0,)])
+    @test 1.0 ≈ σ2p(D_A.σ[(A =1,)])
+
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    D = MinkowskiDistribution(Ω, 10, 10)
+    d_poisson = Distributions.Poisson(D.λ)
+    p = 1 -cdf(d_poisson, D.ρ-1)
+    D_A_binomial = Binomial(D.n^2, p)
+    D_A = marginalize(D, (:P, :χ))
+
+    ps_equal = Bool[]
+    for x in 1:25
+        push!(ps_equal, pdf(D_A_binomial, x) ≈ D_A.P[(A=x,)])
+    end
+    @test sum(ps_equal) == 25
+
+    ps = pdf(D_A_binomial)
+    σs_equal = Bool[]
+    for x in 1:25
+        push!(σs_equal, round(p2σ(sum(ps[ps .<= pdf(D_A_binomial, x)])), digits=10) ≈ D_A.σ[(A=x,)])
+    end
+    @test sum(σs_equal) == 25
+# p2σ(sum(ps[ps .<= pdf(D_A_binomial, 0)]))
+
+
+
+    # D_A = marginalize(P, :A)
+    # @test 1.0 ≈ sum(pdf(P_A))
+    # P_P = marginalize(P, :P)
+    # @test 1.0 ≈ sum(pdf(P_P))
+    # P_χ = marginalize(P, :χ)
+    # @test 1.0 ≈ sum(pdf(P_χ))
+
+    # p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+    # P_A_from_binomial = Binomial(n^2, p)
+
+    # @test support(P_A_from_binomial) == support(P_A)
+    # @test (pdf(P_A_from_binomial) .≈ pdf(P_A)) == ones(Int, 10)
 end
