@@ -1,6 +1,9 @@
 
 using Test
 using MinkowskiFunctionals
+using Distributions
+
+const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
 @testset "minkowski_map" begin
     ρs = 9:10
@@ -36,4 +39,9 @@ using MinkowskiFunctionals
     correct[3, 2] = 0.19514784000984248
     correct[2, 2] = 0.4658702309200946
     @test correct ≈ mmap.pixels
+
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    h0s = [MinkowskiDistribution(Ω, 10, ρ) for ρ in 10:11]
+    counts_map = rand(CountsMap, Poisson(10), 8)
+    mink_map = MinkowskiMap(counts_map, h0s)
 end
