@@ -2,6 +2,9 @@ struct CountsMap
     pixels::Matrix{Int64}
 end
 
+Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
+
+
 function CountsMap(d::FullNormal, n, N)
     samples = rand(d, N)
     counts_map = fit(Histogram, (samples[1, :], samples[2,:]), (range(-1, 1, n+1), range(-1,1,n+1)))
@@ -19,6 +22,9 @@ function BWMap(x::CountsMap, ρ)
     return BWMap(ρ, x.pixels .>= ρ)
 end
 
+function BWMap(x::Matrix{Int64}, ρ)
+    return BWMap(ρ, x .>= ρ)
+end
 """
     struct MinkowskiFunctional
 

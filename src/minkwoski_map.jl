@@ -20,8 +20,8 @@ struct MinkowskiMap
             for i in l+1:n-l
                 deviation_strengths = zeros(length(ρs))
                 for (k, ρ) in enumerate(ρs)
-                    bw_map = BWMap(x, ρ)
-                    functional = MinkowskiFunctional(bw_map.pixels[i-l:i+l, j-l:j+l])
+                    bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
+                    functional = MinkowskiFunctional(bw_map.pixels)
                     deviation_strengths[k] = deviation_strength(getfield(h0_distributions[k], F), getfield(functional, F))
                 end
                 Ds[i-l, j-l] = maximum(deviation_strengths)
@@ -64,8 +64,8 @@ struct MinkowskiMap
             deviation_strengths = zeros(length(ρs))
             for i in l+1:n-l
                 for (k, ρ) in enumerate(ρs)
-                    bw_map = BWMap(x, ρ)
-                    functional = MinkowskiFunctional(bw_map.pixels[i-l:i+l, j-l:j+l])
+                    bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
+                    functional = MinkowskiFunctional(bw_map.pixels)
                     deviation_strengths[k] = h0_distributions[k].α[functional]
                 end
                 @inbounds Ds[i-l, j-l] = minimum(deviation_strengths)
@@ -86,8 +86,8 @@ struct MinkowskiMap
             deviation_strengths = zeros(length(ρs))
             for i in l+1:n-l
                 for (k, ρ) in enumerate(ρs)
-                    bw_map = BWMap(x, ρ)
-                    functional = MinkowskiFunctional(bw_map.pixels[i-l:i+l, j-l:j+l])
+                    bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
+                    functional = MinkowskiFunctional(bw_map.pixels)
                     reduced_functional = reduce_functional(functional, fields)
                     deviation_strengths[k] = h0_distributions[k].α[reduced_functional]
                 end
