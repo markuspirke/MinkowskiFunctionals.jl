@@ -6,7 +6,7 @@ for a given system size and given λ and ρ.
 """
 struct MinkowskiDistribution
     n::Int
-    λ::Int
+    λ
     ρ::Int
     p::Accumulator
     α::Accumulator
