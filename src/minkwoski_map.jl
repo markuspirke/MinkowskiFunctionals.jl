@@ -60,7 +60,7 @@ struct MinkowskiMap
         L = h0_distributions[1].n
         l = floor(Int, L/2)
         Ds = zeros(n - 2l, m - 2l)
-        Threads.@threads for j in l+1:m-l
+        for j in l+1:m-l
             deviation_strengths = zeros(length(ρs))
             for i in l+1:n-l
                 for (k, ρ) in enumerate(ρs)
@@ -82,7 +82,7 @@ struct MinkowskiMap
         L = h0_distributions[1].n
         l = floor(Int, L/2)
         Ds = zeros(n - 2l, m - 2l)
-        Threads.@threads for j in l+1:m-l
+        for j in l+1:m-l
             deviation_strengths = zeros(length(ρs))
             for i in l+1:n-l
                 for (k, ρ) in enumerate(ρs)
