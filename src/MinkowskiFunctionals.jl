@@ -1,7 +1,7 @@
 module MinkowskiFunctionals
 
 using Base.Threads
-import Base: getindex, +, append!
+import Base: getindex, +, append!, size, show
 using Distributions
 using DataStructures
 using PaddedViews
@@ -13,7 +13,7 @@ using ProgressMeter
 using Dates
 
 
-export CountsMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
+export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
     PoissonMinkowskiDistributions, DensityOfStates, MinkowskiDistribution, pdf, marginalize, reduce_functional,
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
