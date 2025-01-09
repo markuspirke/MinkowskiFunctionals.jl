@@ -7,6 +7,7 @@ struct CountsMap
     pixels::Matrix{Int64}
 end
 
+Base.size(x::CountsMap) = size(x.pixels)
 Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
 
 
