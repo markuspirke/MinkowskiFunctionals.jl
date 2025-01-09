@@ -10,7 +10,6 @@ struct MinkowskiDistribution
     ρ::Int
     p::Accumulator
     α::Accumulator
-
 end
 
 function MinkowskiDistribution(n, λ, ρ, distribution::Accumulator)

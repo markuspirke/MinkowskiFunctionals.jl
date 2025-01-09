@@ -18,7 +18,7 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap
+    MinkowskiMap, minkowski_map_A,
 
 
 include("types.jl")
