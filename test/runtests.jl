@@ -9,5 +9,6 @@ using Test
     include("sampling.jl")
     include("minkowski_map.jl")
     include("utils.jl")
+    include("lima.jl")
     # Write your tests here.
 end

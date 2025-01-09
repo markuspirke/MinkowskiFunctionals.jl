@@ -19,6 +19,7 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
     MinkowskiMap, minkowski_map_A,
+    λ_lima, significance_lima, lima_map, lima_map_roundkernel
 
 
 include("types.jl")
@@ -29,6 +30,7 @@ include("density_of_states.jl")
 include("distributions.jl")
 include("sampling.jl")
 include("minkwoski_map.jl")
+include("lima.jl")
 
 
 end
