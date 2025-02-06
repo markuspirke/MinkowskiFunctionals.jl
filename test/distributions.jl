@@ -6,6 +6,16 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
 @testset "distribution" begin
 
+
+    # TEST AREA DISTRIBUTION
+    n, λ, ρ = 2, 10, 10
+    dA = AreaDistribution(n, λ, ρ)
+    @test dA.n == 2
+    @test dA.p.p ≈ 0.5420702855281477
+    @test dA.p.n == 4
+    counts_map = CountsMap(10*ones(2, 2))
+    @test compatibility(counts_map.pixels, dA) ≈ 0.1303159919284611
+
     n, λ, ρ = 3, 10, 10
     Ω = DensityOfStates(n)
     @test 2^(n^2) == sum(values(Ω.data))

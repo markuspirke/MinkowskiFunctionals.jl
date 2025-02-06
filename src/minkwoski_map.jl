@@ -14,34 +14,6 @@ Base.size(x::MinkowskiMap) = size(x.pixels)
 Base.getindex(x::MinkowskiMap, i, j) = x.pixels[i, j]
 
 """
-    function MinkowskiMap(x, h0_distributions, F)
-
-Given an counts map x and the distributions for different tresholds ρ
-this calculates a Minkowski map for a given functional F.
-"""
-function MinkowskiMap(x, h0_distributions, F)
-    m, n = size(x.pixels)
-    ρs = [s.ρ for s in h0_distributions]
-    λ = h0_distributions[1].λ
-    L = h0_distributions[1].n
-    l = floor(Int, L/2)
-    Ds = zeros(n - 2l, m - 2l)
-    for j in l+1:m-l
-        for i in l+1:n-l
-            deviation_strengths = zeros(length(ρs))
-            for (k, ρ) in enumerate(ρs)
-                bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
-                functional = MinkowskiFunctional(bw_map.pixels)
-                deviation_strengths[k] = deviation_strength(getfield(h0_distributions[k], F), getfield(functional, F))
-            end
-            Ds[i-l, j-l] = maximum(deviation_strengths)
-        end
-    end
-
-    return MinkowskiMap(λ, ρs, L, Ds)
-end
-
-"""
     function MinkowskiMap(x::CountsMap, h0_distributions::Vector{MinkowskiDistribution})
 
 Given an counts map x and the distributions for different tresholds ρ
@@ -53,20 +25,74 @@ function MinkowskiMap(x::CountsMap, h0_distributions::Vector{MinkowskiDistributi
     λ = h0_distributions[1].λ
     L = h0_distributions[1].n
     l = floor(Int, L/2)
-    Ds = zeros(n - 2l, m - 2l)
+    αs = zeros(n - 2l, m - 2l)
     for j in l+1:m-l
-        deviation_strengths = zeros(length(ρs))
+        αs_ρ = zeros(length(ρs))
         for i in l+1:n-l
             for (k, ρ) in enumerate(ρs)
-                bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
-                functional = MinkowskiFunctional(bw_map.pixels)
-                deviation_strengths[k] = h0_distributions[k].α[functional]
+                αs_ρ[k] = compatibility(x[i-l:i+l, j-l:j+l], h0_distributions[k])
+                # bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
+                # functional = MinkowskiFunctional(bw_map.pixels)
+                # deviation_strengths[k] = h0_distributions[k].α[functional]
             end
-            @inbounds Ds[i-l, j-l] = minimum(deviation_strengths)
+            @inbounds αs[i-l, j-l] = minimum(αs_ρ)
         end
     end
 
-    return MinkowskiMap(λ, ρs, L, Ds)
+    return MinkowskiMap(λ, ρs, L, αs)
+end
+
+"""
+    function compatibility(x::Matrix{Int64}, h0::MinkowskiDistribution)
+
+Given some matrix of counts, this calculates the α-value for the center pixel
+based on the all Minkowski functionals.
+"""
+function compatibility(x::Matrix{Int64}, h0::MinkowskiDistribution)
+    bw_map = BWMap(x, h0.ρ)
+    functional = MinkowskiFunctional(bw_map.pixels)
+
+    h0.α[functional]
+end
+
+"""
+    function MinkowskiMap(x::CountsMap, h0s::Vector{AreaDistribution})
+
+This calculates a Minkowski Map only based on the area functional A.
+This is possible for arbitrary window sizes, as the distribution of
+the area functional is just a Binomial distribution.
+"""
+function MinkowskiMap(x::CountsMap, h0s::Vector{AreaDistribution})
+    m, n = size(x.pixels)
+    ρs = [s.ρ for s in h0s]
+    λ = h0s[1].λ
+    L = h0s[1].n
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    for j in l+1:m-l
+        αs_ρ = zeros(length(ρs))
+        for i in l+1:n-l
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(x[i-l:i+l, j-l:j+l], h0s[k])
+            end
+            @inbounds αs[i-l, j-l] = minimum(αs_ρ)
+        end
+    end
+
+    return MinkowskiMap(λ, ρs, L, αs)
+end
+
+"""
+    function compatibility(x::Matrix{Int64}, h0::AreaDistribution)
+
+Given some matrix of counts, this calculates the α-value for the center pixel
+based on the area functional.
+"""
+function compatibility(x::Matrix{Int64}, h0::AreaDistribution)
+    bw_map = BWMap(x, h0.ρ)
+    functional = MinkowskiFunctional(bw_map.pixels)
+
+    h0.α[functional.A]
 end
 
 function MinkowskiMap(x::CountsMap, h0_distributions::Vector{MinkowskiDistribution}, fields)
@@ -75,21 +101,21 @@ function MinkowskiMap(x::CountsMap, h0_distributions::Vector{MinkowskiDistributi
     λ = h0_distributions[1].λ
     L = h0_distributions[1].n
     l = floor(Int, L/2)
-    Ds = zeros(n - 2l, m - 2l)
+    αs = zeros(n - 2l, m - 2l)
     for j in l+1:m-l
-        deviation_strengths = zeros(length(ρs))
+        αs_ρ = zeros(length(ρs))
         for i in l+1:n-l
             for (k, ρ) in enumerate(ρs)
                 bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
                 functional = MinkowskiFunctional(bw_map.pixels)
                 reduced_functional = reduce_functional(functional, fields)
-                deviation_strengths[k] = h0_distributions[k].α[reduced_functional]
+                αs_ρ[k] = h0_distributions[k].α[reduced_functional]
             end
-            @inbounds Ds[i-l, j-l] = minimum(deviation_strengths)
+            @inbounds αs[i-l, j-l] = minimum(αs_ρ)
         end
     end
 
-    return MinkowskiMap(λ, ρs, L, Ds)
+    return MinkowskiMap(λ, ρs, L, αs)
 end
 
 """
@@ -101,13 +127,10 @@ the area functional is just a Binomial distribution.
 """
 function minkowski_map_A(x::CountsMap, λ, ρs, L)
     m, n = size(x.pixels)
-    d_poisson = Distributions.Poisson(λ)
-    ps = [1 - cdf(d_poisson, ρ-1) for ρ in ρs]
-    ds_A = [Binomial(L^2, p) for p in ps]
-    αs_A = [get_αs_binomial(d) for d in ds_A]
+    dAs = [AreaDistribution(L, λ, ρ) for ρ in ρs]
 
     l = floor(Int, L/2)
-    Ds = zeros(n - 2l, m - 2l) # DS not appropirate name as this is not dev strength
+    αs = zeros(n - 2l, m - 2l) # DS not appropirate name as this is not dev strength
     for j in l+1:m-l
         αs_ρ = zeros(length(ρs))
         for i in l+1:n-l
@@ -117,25 +140,13 @@ function minkowski_map_A(x::CountsMap, λ, ρs, L)
                 A = functional.A
                 αs_ρ[k] = αs_A[k][A]
             end
-            @inbounds Ds[i-l, j-l] = minimum(αs_ρ)
+            @inbounds αs[i-l, j-l] = minimum(αs_ρ)
         end
     end
 
-    return MinkowskiMap(λ, ρs, L, Ds)
+    return MinkowskiMap(λ, ρs, L, αs)
 end
 
-"""
-    function get_αs_binomial(d::Binomial{Float64})
-
-A small helper function to precalculate a lookup table for
-hypothesis testing based on a Binomial distribution.
-"""
-function get_αs_binomial(d::Binomial{Float64})
-    ps = pdf(d)
-    αs = Dict(i-1 => sum(ps[ps[i] .>= ps]) for i in 1:length(ps))
-
-    return αs
-end
 
 """
     function minkowski_map_A_round(x::CountsMap, λ, ρs, L)
@@ -150,16 +161,14 @@ function minkowski_map_A_round(x::CountsMap, λ, ρs, L)
     r = floor(Int, L/2)
     l = floor(Int, L/2)
     round_mask = [sqrt((i - r - 1)^2 + (j - r - 1)^2) <= r for i in 1:L, j in 1:L]
-    @show round_mask
     N = sum(round_mask)
-    @show N
 
     d_poisson = Distributions.Poisson(λ)
     ps = [1 - cdf(d_poisson, ρ-1) for ρ in ρs]
     ds_A = [Binomial(N, p) for p in ps]
     αs_A = [get_αs_binomial(d) for d in ds_A]
 
-    Ds = zeros(n - 2l, m - 2l) # DS not appropirate name as this is not dev strength
+    αs = zeros(n - 2l, m - 2l) # DS not appropirate name as this is not dev strength
     for j in l+1:m-l
         αs_ρ = zeros(length(ρs))
         for i in l+1:n-l
@@ -169,12 +178,15 @@ function minkowski_map_A_round(x::CountsMap, λ, ρs, L)
                 A = functional.A
                 αs_ρ[k] = αs_A[k][A]
             end
-            @inbounds Ds[i-l, j-l] = minimum(αs_ρ)
+            @inbounds αs[i-l, j-l] = minimum(αs_ρ)
         end
     end
 
-    return MinkowskiMap(λ, ρs, L, Ds)
+    return MinkowskiMap(λ, ρs, L, αs)
 end
+
+
+
 
 """
     function deviation_strength(h0_distribution::T, x) where {T<:DiscreteDistribution}
@@ -186,4 +198,17 @@ function deviation_strength(h0_distribution::T, x) where {T<:DiscreteDistributio
     p = pdf(h0_distribution, x)
     mask = probs(h0_distribution) .<= p
     return -log10(sum(probs(h0_distribution)[mask]))
+end
+
+
+function correct_trials(mink_map::MinkowskiMap, n_trials)
+    pixels = mink_map.pixels * n_trials
+    return  MinkowskiMap(mink_map.λ, mink_map.ρ, mink_map.L, pixels)
+end
+
+function p2σ(mink_map::MinkowskiMap)
+    pixels = mink_map.pixels
+    pixels[pixels .> 1] .= 1.0
+    pixels = p2σ.(pixels)
+    return  MinkowskiMap(mink_map.λ, mink_map.ρ, mink_map.L, pixels)
 end

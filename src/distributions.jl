@@ -1,4 +1,40 @@
 """
+    struct AreaDistribution
+
+This defines a datatype which stores the area probability distribution
+for a given system size and given λ and ρ.
+"""
+struct AreaDistribution
+    n::Int
+    λ
+    ρ::Int
+    p::Binomial{Float64}
+    α::Dict{Int64, Float64}
+end
+
+function AreaDistribution(n, λ, ρ)
+    d_poisson = Distributions.Poisson(λ)
+    p = 1 - cdf(d_poisson, ρ-1)
+    d_A = Binomial(n^2, p)
+    α = get_αs_binomial(d_A)
+
+    AreaDistribution(n, λ, ρ, d_A, α)
+end
+
+"""
+    function get_αs_binomial(d::Binomial{Float64})
+
+A small helper function to precalculate a lookup table for
+hypothesis testing based on a Binomial distribution.
+"""
+function get_αs_binomial(d::Binomial{Float64})
+    ps = pdf(d)
+    αs = Dict(i-1 => sum(ps[ps[i] .>= ps]) for i in 1:length(ps))
+
+    return αs
+end
+
+"""
     struct MinkowskiDistribution
 
 This defines a datatype which stores the joint probability distribution

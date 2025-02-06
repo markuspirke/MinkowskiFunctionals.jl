@@ -14,11 +14,12 @@ using Dates
 
 
 export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
-    PoissonMinkowskiDistributions, DensityOfStates, MinkowskiDistribution, pdf, marginalize, reduce_functional,
+    PoissonMinkowskiDistributions, DensityOfStates,
+    MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution,
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap, minkowski_map_A,
+    MinkowskiMap, minkowski_map_A, correct_trials,
     λ_lima, significance_lima, lima_map, lima_map_roundkernel
 
 
