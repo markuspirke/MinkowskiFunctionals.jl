@@ -138,7 +138,7 @@ function minkowski_map_A(x::CountsMap, λ, ρs, L)
                 bw_map = BWMap(x[i-l:i+l, j-l:j+l], ρ)
                 functional = MinkowskiFunctional(bw_map.pixels)
                 A = functional.A
-                αs_ρ[k] = αs_A[k][A]
+                αs_ρ[k] = αs_ρ[k][A]
             end
             @inbounds αs[i-l, j-l] = minimum(αs_ρ)
         end
