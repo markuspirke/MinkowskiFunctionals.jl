@@ -13,7 +13,7 @@ using ProgressMeter
 using Dates
 
 
-export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p,
+export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
     PoissonMinkowskiDistributions, DensityOfStates,
     MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution,
     add_functionals!, compatibility,
