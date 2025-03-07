@@ -30,7 +30,7 @@ include("generate.jl")
 include("density_of_states.jl")
 include("distributions.jl")
 include("sampling.jl")
-include("minkwoski_map.jl")
+include("minkowski_map.jl")
 include("lima.jl")
 
 
