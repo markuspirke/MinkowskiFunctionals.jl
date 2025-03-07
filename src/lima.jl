@@ -27,14 +27,15 @@ the signifiance of the center pixels by summing up all counts in the region,
 these are the ON counts and as OFF counts the correct λ is used which is
 multiplied by the number of pixels L^2, where L is the window size.
 """
-function lima_map(img::CountsMap, L, λ)
+function lima_map(img::CountsMap, λ, L)
     m, n = size(img)
     l = floor(Int, L/2)
     σs = zeros(n - 2l, m - 2l)
     for j in l+1:m-l
         for i in l+1:n-l
             σ = significance_lima.(sum(img[i-l:i+l, j-l:j+l]), L^2*λ)
-            σs[i-l,j-l] = σ
+            s = sum(img[i-l:i+l, j-l:j+l]) > L^2*λ ? 1.0 : -1.0
+            σs[i-l,j-l] = σ * s
         end
     end
     σs
@@ -51,7 +52,7 @@ multiplied by the number of pixels L^2, where L is the window size.
 The difference to the above method is that here we do not use a square
 window but a round one.
 """
-function lima_map_roundkernel(img::CountsMap, L, λ)
+function lima_map_roundkernel(img::CountsMap, λ, L)
     m, n = size(img)
     l = floor(Int, L/2)
     r = floor(Int, L/2)

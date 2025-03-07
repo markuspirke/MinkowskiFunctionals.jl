@@ -12,6 +12,6 @@ using MinkowskiFunctionals
     counts_map = CountsMap(Int.(ones(9, 9)))
     λ = 1
     L = 3
-    @test zeros(7, 7) ≈ lima_map(counts_map, L, λ)
-    @test zeros(7, 7) ≈ lima_map_roundkernel(counts_map, L, λ)
+    @test zeros(7, 7) ≈ lima_map(counts_map, λ, L)
+    @test zeros(7, 7) ≈ lima_map_roundkernel(counts_map, λ, L)
 end
