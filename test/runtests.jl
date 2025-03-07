@@ -2,6 +2,7 @@ using MinkowskiFunctionals
 using Test
 
 @testset "MinkowskiFunctionals.jl" begin
+    include("types.jl")
     include("calculate.jl")
     include("generate.jl")
     include("density_of_states.jl")

@@ -10,12 +10,15 @@ end
 Base.size(x::CountsMap) = size(x.pixels)
 Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
 
+function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
+    m, n = x
+    d = Poisson(λ)
+    CountsMap(rand(d, m, n))
+end
 
-function CountsMap(d::FullNormal, n, N)
-    samples = rand(d, N)
-    counts_map = fit(Histogram, (samples[1, :], samples[2,:]), (range(-1, 1, n+1), range(-1,1,n+1)))
-
-    return CountsMap(counts_map.weights)
+function CountsMap(x::Int64, λ::Float64)
+    d = Poisson(λ)
+    CountsMap(rand(d, x, x))
 end
 
 """
@@ -59,6 +62,10 @@ end
 
 function BWMap(x::Matrix{Int64}, ρ)
     return BWMap(ρ, x .>= ρ)
+end
+
+struct Background
+    pixels::Matrix{Float64}
 end
 """
     struct MinkowskiFunctional
