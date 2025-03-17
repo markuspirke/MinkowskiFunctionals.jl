@@ -67,6 +67,9 @@ end
 struct Background
     pixels::Matrix{Float64}
 end
+
+Base.size(x::Background) = size(x.pixels)
+Base.getindex(x::Background, i, j) = x.pixels[i, j]
 """
     struct MinkowskiFunctional
 
