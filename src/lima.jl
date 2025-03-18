@@ -19,7 +19,7 @@ function significance_lima(Non, Noff, a=1)
 end
 
 """
-    function lima_map(img, L, λ)
+    function lima_map(img::CountsMap, background::Matrix{Float64}, L::Int64)
 
 This takes a counts map an returns a significance map based on the
 formula from the lima paper. It uses an extended region to calculate
@@ -27,22 +27,25 @@ the signifiance of the center pixels by summing up all counts in the region,
 these are the ON counts and as OFF counts the correct λ is used which is
 multiplied by the number of pixels L^2, where L is the window size.
 """
-function lima_map(img::CountsMap, λ, L)
+function lima_map(img::CountsMap, background::Background, L::Int64)
     m, n = size(img)
     l = floor(Int, L/2)
+    r = floor(Int, L/2)
     σs = zeros(n - 2l, m - 2l)
+
     for j in l+1:m-l
         for i in l+1:n-l
-            σ = significance_lima.(sum(img[i-l:i+l, j-l:j+l]), L^2*λ)
-            s = sum(img[i-l:i+l, j-l:j+l]) > L^2*λ ? 1.0 : -1.0
+            window = img[i-l:i+l, j-l:j+l]# .* round_mask
+            b_window = background[i-l:i+l, j-l:j+l]# .* round_mask
+            σ = significance_lima.(sum(window), sum(b_window))
+            s = sum(window) > sum(b_window) ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
     end
     σs
 end
-
 """
-    function lima_map_roundkernel(img, L, λ)
+    function lima_map(img::CountsMap, background::Matrix{Float64}, mask::Matrix{Bool})
 
 This takes a counts map an returns a significance map based on the
 formula from the lima paper. It uses an extended region to calculate
@@ -52,19 +55,19 @@ multiplied by the number of pixels L^2, where L is the window size.
 The difference to the above method is that here we do not use a square
 window but a round one.
 """
-function lima_map_roundkernel(img::CountsMap, λ, L)
+function lima_map(img::CountsMap, background::Background, mask::Union{BitMatrix, Matrix{Bool}})
     m, n = size(img)
-    l = floor(Int, L/2)
-    r = floor(Int, L/2)
+    m_mask, n_mask = size(mask)
+    l = floor(Int, m_mask/2)
     σs = zeros(n - 2l, m - 2l)
-    round_mask = [sqrt((i - r - 1)^2 + (j - r - 1)^2) <= r for i in 1:L, j in 1:L]
 
     for j in l+1:m-l
         for i in l+1:n-l
-            window = img[i-l:i+l, j-l:j+l]
-            round_window = window .* round_mask
-            σ = significance_lima.(sum(round_window), sum(round_mask)*λ)
-            σs[i-l,j-l] = σ
+            window = img[i-l:i+l, j-l:j+l] .* mask
+            b_window = background[i-l:i+l, j-l:j+l] .* mask
+            σ = significance_lima.(sum(window), sum(b_window))
+            s = sum(window) > sum(b_window) ? 1.0 : -1.0
+            σs[i-l,j-l] = σ * s
         end
     end
     σs
