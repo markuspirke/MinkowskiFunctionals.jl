@@ -55,7 +55,7 @@ Calculates which tresholds are used.
 """
 function get_tresholds(local_counts, local_background)
     ρ_min = minimum(local_counts) > 0 ? minimum(local_counts) : 1
-    ρ_max = maximum(local_counts)
+    ρ_max = maximum(local_counts) > 0 ? maximum(local_counts) : 1
     return ρ_min:ρ_max
 end
 

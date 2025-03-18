@@ -83,4 +83,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     @test pvalue ≈ MinkowskiMap(counts_map, b, Ω).pixels[1, 1]
     @test pvalue ≈ MinkowskiMap(counts_map, 1.0, Ω).pixels[1, 1]
+
+    counts = zeros(3, 3)
+    counts_map = CountsMap(counts)
+    background = Background(zeros(3, 3))
+    mink_map = MinkowskiMap(counts_map, background, Ω)
+    @test 1.0 ≈ mink_map[1, 1]
 end
