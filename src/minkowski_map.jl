@@ -37,13 +37,22 @@ end
     function correction!(x, b, target)
 
 This accounts for changing background within the local window and either adds or subtracts counts.
+If the background at a particular pixel is smaller than the background of the center pixel
+the counts are filled up by sampling from a Poisson distribution. If otherwise, so less counts at the particular
+pixel counts are removed by sampling from a binomial distribution.
 """
 function correction!(x, b, target)
     m, n = size(x)
     for j in 1:n
         for i in 1:m
-            sign_corr = sign(target - b[i,j])
-            x[i, j] = x[i, j] + sign_corr * rand(Poisson(abs(target - b[i,j])))
+            if target - b[i, j] != 0.0
+                sign_corr = sign(target - b[i,j])
+                correction = sign_corr > 0.0 ? rand(Poisson(abs(target - b[i,j]))) : -1.0 * rand(Binomial(x[i, j], target/b[i, j]))
+                x[i, j] += correction
+                if x[i, j] < 0
+                    x[i, j] = 0
+                end
+            end
         end
     end
 end
@@ -72,8 +81,15 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     signs = ones(n - 2l, m - 2l)
     for j in l+1:m-l
         for i in l+1:n-l
+            if b.pixels[i, j] == 0.0
+                continue
+            end
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
+            # if i == 218 && j == 51
+            #     @show local_counts
+            #     @show local_background
+            # end
             correction!(local_counts, local_background, b[i, j])
             ρs = get_tresholds(local_counts, local_background)
             l_ρ = length(ρs)
@@ -82,6 +98,12 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
             for (k, ρ) in enumerate(ρs)
                 mink_distribution = AreaDistribution(L^2, b.pixels[i, j], ρ)
                 αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
+                # if αs_ρ[k] < 5e-7
+                #     @show i, j
+                #     @show local_counts
+                #     @show local_background
+                #     return
+                # end
                 signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)
@@ -108,6 +130,9 @@ function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix
     signs = ones(n - 2l, m - 2l)
     for j in l+1:m-l
         for i in l+1:n-l
+            if b.pixels[i, j] == 0.0
+                continue
+            end
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
@@ -175,6 +200,9 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
     signs = ones(n - 2l, m - 2l)
     for j in l+1:m-l
         for i in l+1:n-l
+            if b.pixels[i, j] == 0.0
+                continue
+            end
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
