@@ -79,32 +79,22 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    for j in l+1:m-l
+    Threads.@threads for j in l+1:m-l
         for i in l+1:n-l
             if b.pixels[i, j] == 0.0
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
-            # if i == 218 && j == 51
-            #     @show local_counts
-            #     @show local_background
-            # end
             correction!(local_counts, local_background, b[i, j])
             ρs = get_tresholds(local_counts, local_background)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
-            Threads.@threads for k in 1:length(ρs)
+            for k in 1:length(ρs)
                 mink_distribution = AreaDistribution(L^2, b.pixels[i, j], ρs[k])
-                αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
-                # if αs_ρ[k] < 5e-7
-                #     @show i, j
-                #     @show local_counts
-                #     @show local_background
-                #     return
-                # end
-                signs_ρ[k] = get_sign(mink_distribution, local_counts)
+                @inbounds αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
+                @inbounds signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
@@ -198,7 +188,7 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    for j in l+1:m-l
+    Threads.@threads for j in l+1:m-l
         for i in l+1:n-l
             if b.pixels[i, j] == 0.0
                 continue
@@ -210,12 +200,10 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
-            # for (k, ρ) in enumerate(ρs)
-            # for k in 1:length(ρs)
-            Threads.@threads for k in 1:length(ρs)
+            for k in 1:length(ρs)
                 mink_distribution = MinkowskiDistribution(Ω, b.pixels[i, j], ρs[k])
-                αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
-                signs_ρ[k] = get_sign(mink_distribution, local_counts)
+                @inbounds αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
+                @inbounds signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
