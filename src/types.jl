@@ -70,6 +70,17 @@ end
 
 Base.size(x::Background) = size(x.pixels)
 Base.getindex(x::Background, i, j) = x.pixels[i, j]
+
+function CountsMap(x::Background)
+    m, n = size(x)
+    y = zeros(m, n)
+    for j in 1:n
+        for i in 1:m
+            y[i, j] = rand(Poisson(x[i, j]))
+        end
+    end
+    return CountsMap(y)
+end
 """
     struct MinkowskiFunctional
 
