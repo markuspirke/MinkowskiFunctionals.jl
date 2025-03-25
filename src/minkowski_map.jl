@@ -45,10 +45,15 @@ function correction!(x, b, target)
     m, n = size(x)
     for j in 1:n
         for i in 1:m
-            if target - b[i, j] != 0.0
+            if (target - b[i, j]) != 0.0
                 sign_corr = sign(target - b[i,j])
-                correction = sign_corr > 0.0 ? rand(Poisson(abs(target - b[i,j]))) : -1.0 * rand(Binomial(x[i, j], target/b[i, j]))
+                correction = sign_corr > 0.0 ? rand(Poisson(abs(target - b[i,j]))) : -1.0 * rand(Binomial(x[i, j], 1.0  - target/b[i, j]))
+                # if sign_corr < 0.0
+                #     @show correction
+                # end
+                # correction = rand(Poisson(abs(target - b[i,j])))
                 x[i, j] += correction
+                # x[i, j] += sign_corr * correction
                 if x[i, j] < 0
                     x[i, j] = 0
                 end
@@ -79,7 +84,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    Threads.@threads for j in l+1:m-l
+    for j in l+1:m-l
         for i in l+1:n-l
             if b.pixels[i, j] == 0.0
                 continue
@@ -93,7 +98,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
             signs_ρ = zeros(l_ρ)
             for k in 1:length(ρs)
                 mink_distribution = AreaDistribution(L^2, b.pixels[i, j], ρs[k])
-                @inbounds αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
+                @inbounds αs_ρ[k] = compatibility(mink_distribution, local_counts)
                 @inbounds signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)
@@ -132,7 +137,7 @@ function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix
             signs_ρ = zeros(l_ρ)
             Threads.@threads for k in 1:length(ρs)
                 mink_distribution = AreaDistribution(N, b.pixels[i, j], ρs[k])
-                αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l] .* mask)
+                αs_ρ[k] = compatibility(mink_distribution, local_counts .* mask)
                 signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)
@@ -202,7 +207,7 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             signs_ρ = zeros(l_ρ)
             for k in 1:length(ρs)
                 mink_distribution = MinkowskiDistribution(Ω, b.pixels[i, j], ρs[k])
-                @inbounds αs_ρ[k] = compatibility(mink_distribution, x[i-l:i+l, j-l:j+l])
+                @inbounds αs_ρ[k] = compatibility(mink_distribution, local_counts)
                 @inbounds signs_ρ[k] = get_sign(mink_distribution, local_counts)
             end
             idx = argmin(αs_ρ)

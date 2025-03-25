@@ -89,4 +89,57 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     background = Background(zeros(3, 3))
     mink_map = MinkowskiMap(counts_map, background, Ω)
     @test 1.0 ≈ mink_map[1, 1]
+
+    background = Background([1.0 1.0 100000.0; 1.0 1.0 9.0; 1.0 1.0 9.0])
+    counts_map = CountsMap(3, 2.0)
+    mink_map = MinkowskiMap(counts_map, background, Ω)
+
+
+    # check if correction works at boundaries
+
+    as = Float64[]
+    bs = Float64[]
+    for _ in 1:100
+        background = zeros(32, 32)
+        background[:, 1:16] .= 2.0
+        background = Background(background)
+        counts_map = CountsMap(background)
+        mink_map = MinkowskiMap(counts_map, background, 9)
+        x = p2σ(mink_map)
+        push!(as, mean(x[:, 1:6]))
+        push!(bs, mean(x[:, 7:12]))
+    end
+
+    @test 0.1 > abs(mean(as) - mean(bs))
+
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    as = Float64[]
+    bs = Float64[]
+    for _ in 1:100
+        background = zeros(12, 12)
+        background[:, 1:6] .= 2.0
+        background = Background(background)
+        counts_map = CountsMap(background)
+        mink_map = MinkowskiMap(counts_map, background, Ω)
+        x = p2σ(mink_map)
+        push!(as, mean(x[:, 1:2]))
+        push!(bs, mean(x[:, 3:4]))
+    end
+
+    @test 0.1 > abs(mean(as) - mean(bs))
+
+    as = Float64[]
+    bs = Float64[]
+    for _ in 1:100
+        background = ones(12, 12)
+        background[:, 1:6] .= 3.0
+        background = Background(background)
+        counts_map = CountsMap(background)
+        mink_map = MinkowskiMap(counts_map, background, Ω)
+        x = p2σ(mink_map)
+        push!(as, mean(x[:, 5:6]))
+        push!(bs, mean(x[:, 7:8]))
+    end
+
+    @test 0.1 > abs(mean(as) - mean(bs))
 end
