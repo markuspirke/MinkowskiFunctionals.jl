@@ -19,7 +19,7 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Ba
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap, minkowski_map_A, correct_trials,
+    MinkowskiMap, minkowski_map_A, correct_trials, get_tresholds,
     λ_lima, significance_lima, lima_map, lima_map_roundkernel
 
 

@@ -67,9 +67,15 @@ end
 
 Calculates which tresholds are used.
 """
-function get_tresholds(local_counts, local_background)
+function get_tresholds(local_counts)
     ρ_min = minimum(local_counts) > 0 ? minimum(local_counts) : 1
     ρ_max = maximum(local_counts) > 0 ? maximum(local_counts) : 1
+    return ρ_min:ρ_max
+end
+
+function get_tresholds(x::CountsMap)
+    ρ_min = minimum(x.pixels) > 0 ? minimum(x.pixels) : 1
+    ρ_max = maximum(x.pixels) > 0 ? maximum(x.pixels) : 1
     return ρ_min:ρ_max
 end
 
@@ -92,7 +98,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts, local_background)
+            ρs = get_tresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -131,7 +137,7 @@ function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts, local_background)
+            ρs = get_tresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -201,7 +207,7 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts, local_background)
+            ρs = get_tresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -219,7 +225,6 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
     return MinkowskiMap(αs .* signs)
 end
 
-
 """
     function MinkowskiMap(x::CountsMap, b::Float64, L::Int64)
 
@@ -227,26 +232,31 @@ This calculates a MinkowskiMap for a fixed and constant background
 based on the information by all functionals.
 """
 function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates)
-    m, n = size(x.pixels)
+    m, n = size(x)
 
-    ρs = b:maximum(x.pixels)
-    l_ρ = length(ρs)
     L = Ω.n
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)
-    mink_ds = [MinkowskiDistribution(Ω, b, ρ) for ρ in ρs]
-    for j in l+1:m-l
+    ρs = get_tresholds(x.pixels)
+    mink_ds = Dict(ρ=>MinkowskiDistribution(Ω, b, ρ) for ρ in ρs)
+    Threads.@threads for j in l+1:m-l
         for i in l+1:n-l
-            αs_ρ = zeros(l_ρ)
+            if b == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            ρs = get_tresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
-            Threads.@threads for k in 1:length(ρs)
-                αs_ρ[k] = compatibility(mink_ds[k], x[i-l:i+l, j-l:j+l])
-                signs_ρ[k] = get_sign(mink_ds[k], x[i-l:i+l, j-l:j+l])
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(mink_ds[ρ], local_counts)
+                signs_ρ[k] = get_sign(mink_ds[ρ], local_counts)
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
-            @inbounds αs[i-l, j-l] = 1 - (1 - α)^l_ρ
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
             @inbounds signs[i-l, j-l] = signs_ρ[idx]
         end
     end
@@ -254,5 +264,85 @@ function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates)
     return MinkowskiMap(αs .* signs)
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, MinkowskiDistribution})
+
+This calculates a MinkowskiMap for a fixed and constant background based on the information of functionals.
+It needs precalculated distributions
+"""
+function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, MinkowskiDistribution})
+    m, n = size(x)
+    L = first(values(mink_ds)).n
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            if b == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            ρs = get_tresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(mink_ds[ρ], local_counts)
+                signs_ρ[k] = get_sign(mink_ds[ρ], local_counts)
+            end
+            idx = argmin(αs_ρ)
+            α = αs_ρ[idx]
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+        end
+    end
+
+    return MinkowskiMap(αs .* signs)
+end
+
+"""
+    function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, AreaDistribution})
+
+This calculates a MinkowskiMap for a fixed and constant background based the area functional.
+It needs precalculated distributions
+"""
+function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, AreaDistribution})
+    m, n = size(x)
+
+    L = Int(sqrt(first(values(mink_ds)).n))
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            if b == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            ρs = get_tresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(mink_ds[ρ], local_counts)
+                signs_ρ[k] = get_sign(mink_ds[ρ], local_counts)
+            end
+            idx = argmin(αs_ρ)
+            α = αs_ρ[idx]
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+        end
+    end
+
+    return MinkowskiMap(αs .* signs)
+end
 get_sign(d::MinkowskiDistribution, x::CountsMap) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 get_sign(d::MinkowskiDistribution, x::Matrix{Int64}) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
+
+# struct MinkmapBookkeeper
+#     λ::Float64
+#     max_thresholds::UnitRange{Int64}
+#     list::
+
+
+# function fast_minkmap(x::CountsMap, b::Background, Ω::DensityOfStates)

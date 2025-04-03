@@ -9,6 +9,7 @@ end
 
 Base.size(x::CountsMap) = size(x.pixels)
 Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
+Base.setindex!(x::CountsMap, i, j, k) = setindex!(x.pixels, i, j, k)
 
 function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
     m, n = x
@@ -21,6 +22,9 @@ function CountsMap(x::Int64, λ::Float64)
     CountsMap(rand(d, x, x))
 end
 
+function CountsMap(x::Int64, d::Poisson{Float64})
+    CountsMap(rand(d, x, x))
+end
 """
     struct IntensityMap
 
