@@ -65,6 +65,7 @@ struct MinkowskiDistribution
     λ
     ρ::Int
     p::Accumulator
+    pvalue::Union{Accumulator, Missing}
 end
 
 """
@@ -72,7 +73,7 @@ end
 
 This generate the joint probability distribution out of the density of states.
 """
-function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
+function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ; pvalue=false)
     p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
 
     distribution = Accumulator{MinkowskiFunctional, Float64}()
@@ -81,7 +82,18 @@ function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ)
         distribution[key] += value * p^key.A * (1 - p)^(Ω.n^2 - key.A)
     end
 
-    MinkowskiDistribution(Ω.n, p, λ, ρ, distribution)#, c_distribution)
+    mink_distribution = MinkowskiDistribution(Ω.n, p, λ, ρ, distribution, missing)
+
+    if pvalue # THIS CALCULATES PVALUES FOR ALL POSSIBLE FUNCTIONALS
+        d_pvalue = Accumulator{MinkowskiFunctional, Float64}()
+        for (key, value) in distribution
+            c = compatibility(mink_distribution, key)
+            d_pvalue[key] = c
+        end
+        return MinkowskiDistribution(Ω.n, p, λ, ρ, distribution, d_pvalue)
+    else
+        return mink_distribution
+    end
 end
 
 function Base.show(io::IO, P::MinkowskiDistribution)
@@ -113,6 +125,10 @@ function compatibility(d::MinkowskiDistribution, x::Matrix{Int64})
     f = MinkowskiFunctional(bw_map)
     return compatibility(d, f)
 end
+
+
+
+DataStructures.Accumulator{MinkowskiFunctional, Float64}
 
 # compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional) = d.α[f]
 
@@ -148,4 +164,91 @@ end
 
 function reduce_functional(functional::MinkowskiFunctional, fields::T) where T<:Tuple
     return NamedTuple{fields}(Tuple([getfield(functional, f) for f in fields]))
+end
+
+
+"""
+    function MinkowskiDistribution(h5f::HDF5.File, n::Int64, λ::Float64, ρ::Int64)
+
+Loads a Minkwoski distribution from a given h5 file.
+"""
+function MinkowskiDistribution(h5f::HDF5.File, n::Int64, λ::Float64, ρ::Int64)
+    d_counter = Accumulator{MinkowskiFunctional, Float64}()
+    pvalues_counter = Accumulator{MinkowskiFunctional, Float64}()
+    p_black = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+
+    functionals = read(h5f["$(n)/macrostates"])
+    ps = read(h5f["$n/λ=$λ/ρ=$ρ"])
+    for (f, x) in zip(functionals, ps)
+        d_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[1]
+        pvalues_counter[MinkowskiFunctional(f.A, f.P, f.χ)] = x[2]
+    end
+    if pvalues_counter[MinkowskiFunctional(0, 0, 0)] == -1
+        MinkowskiDistribution(n, p_black, λ, ρ, d_counter, missing)
+    else
+        MinkowskiDistribution(n, p_black, λ, ρ, d_counter, pvalues_counter)
+    end
+end
+
+"""
+    function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
+
+Appends a Minkowski distribution to a given h5 file.
+"""
+function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
+    n = distribution.n
+    λ = distribution.λ
+    ρ = distribution.ρ
+    if n in parse.(Int, keys(h5f)) # IF FILE HAS ENTRY FOR SYSTEM SIZE N
+        println("Macrostates for system size $(n) already exist.")
+        if λ in parse.(Float64, getindex.(split.(filter(x -> occursin("=", x), keys(h5f["$(n)"])), "="), 2)) # CHECK ENTRIES WITH SYSTEM SIZE n
+            println("Background already exists.")
+            if ρ in parse.(Int, getindex.(split.(keys(h5f["$(n)/λ=$(λ)"]), "="), 2)) # CHECK IF THRESHOLD
+                println("Threshold already exists. No changes are applied.")
+            else
+                ps = collect(values(distribution.p))
+                if ismissing(distribution.pvalue)
+                    pvalues = [-1 for _ in 1:length(ps)] # IF NO PVALUES RETURN -1
+                else
+                    pvalues = collect(values(distribution.pvalue))
+                end
+                xs = [(p, α) for (p, α) in zip(ps, pvalues)]
+                write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+                # write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", ps)
+                # attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+            end
+        else
+            ps = collect(values(distribution.p))
+            if ismissing(distribution.pvalue)
+                pvalues = [-1 for _ in 1:length(ps)]
+            else
+                pvalues = collect(values(distribution.pvalue))
+            end
+            xs = [(p, α) for (p, α) in zip(ps, pvalues)]
+            write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+            # ps = collect(values(distribution.p))
+            # pvalues = collect(values(distribution.pvalue))
+            # xs = [(p, α) for (p, α) in zip(ps, pvalues)]
+            # write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+            # attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+        end
+    else
+        println("Macrostates do not yet exist. Generating them.")
+
+        write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.p)))
+
+        ps = collect(values(distribution.p))
+        if ismissing(distribution.pvalue)
+            pvalues = [-1 for _ in 1:length(ps)]
+        else
+            pvalues = collect(values(distribution.pvalue))
+        end
+        xs = [(p, α) for (p, α) in zip(ps, pvalues)]
+        write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+        # ps = collect(values(distribution.p))
+        # pvalues = collect(values(distribution.pvalue))
+        # xs = [(p, α) for (p, α) in zip(ps, pvalues)]
+        # write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
+        # attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
+    end
 end

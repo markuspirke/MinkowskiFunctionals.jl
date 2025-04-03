@@ -15,7 +15,7 @@ using Dates
 
 export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
     PoissonMinkowskiDistributions, DensityOfStates,
-    MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution,
+    MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution, append!,
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,

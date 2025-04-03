@@ -26,6 +26,43 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     P = MinkowskiDistribution(Ω, λ, ρ)
     @test 1.0 ≈ sum(pdf(P))
 
+
+
+    # TEST IO
+    n = 3
+    λ = 10.0
+    ρ = 10
+    Ω = DensityOfStates(n)
+    d = MinkowskiDistribution(Ω, λ, ρ)
+    h5open("foo.h5", "w") do h5f
+        append!(h5f, d)
+    end
+
+    h5open("foo.h5", "r") do h5f
+        d_loaded = MinkowskiDistribution(h5f, n, λ, ρ)
+        @test d_loaded.n == n
+        @test d_loaded.ρ == ρ
+        @test d_loaded.λ == λ
+        @test d_loaded.p == d.p
+        @test ismissing(d_loaded.pvalue)
+    end
+
+    d = MinkowskiDistribution(Ω, λ, ρ, pvalue=true)
+    h5open("foo.h5", "w") do h5f
+        append!(h5f, d)
+    end
+
+    h5open("foo.h5", "r") do h5f
+        d_loaded = MinkowskiDistribution(h5f, n, λ, ρ)
+        @test d_loaded.n == n
+        @test d_loaded.ρ == ρ
+        @test d_loaded.λ == λ
+        @test d_loaded.p == d.p
+        @test d_loaded.pvalue == d.pvalue
+    end
+
+    rm("foo.h5")
+
     # TEST SIGN CONVENTION
     # n, λ, ρ = 9, 10, 11
     # counts_map = CountsMap([12 12 12; 12 9 9; 12 12 12])
