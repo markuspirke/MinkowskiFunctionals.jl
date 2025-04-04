@@ -300,6 +300,35 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, MinkowskiDi
     return MinkowskiMap(αs .* signs)
 end
 
+function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, MinkowskiDistribution, MinkowskiDistribution})
+    m, n = size(x)
+    L = first(values(mink_ds)).n
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            if b == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            ρs = get_tresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(mink_ds[ρ], local_counts)
+                signs_ρ[k] = get_sign(mink_ds[ρ], local_counts)
+            end
+            idx = argmin(αs_ρ)
+            α = αs_ρ[idx]
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+        end
+    end
+
+    return MinkowskiMap(αs .* signs)
+end
 """
     function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, AreaDistribution})
 
@@ -307,6 +336,37 @@ This calculates a MinkowskiMap for a fixed and constant background based the are
 It needs precalculated distributions
 """
 function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, AreaDistribution})
+    m, n = size(x)
+
+    L = Int(sqrt(first(values(mink_ds)).n))
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            if b == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            ρs = get_tresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                αs_ρ[k] = compatibility(mink_ds[ρ], local_counts)
+                signs_ρ[k] = get_sign(mink_ds[ρ], local_counts)
+            end
+            idx = argmin(αs_ρ)
+            α = αs_ρ[idx]
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+        end
+    end
+
+    return MinkowskiMap(αs .* signs)
+end
+
+function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, AreaDistribution, AreaDistribution})
     m, n = size(x)
 
     L = Int(sqrt(first(values(mink_ds)).n))
