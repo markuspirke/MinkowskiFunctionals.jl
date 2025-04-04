@@ -7,9 +7,7 @@
 
 Minkowski functionals offer a powerful method for characterizing the shape, size, and connectivity of structures in binary images, without relying on overly detailed descriptions and assumptions.
 
-This package allows users to compute the functionals area, perimeter, and Euler characteristic. It can generate the exact distributions with an "brute force approach", by essentially going through all possible black and white images (not advised to try out on images larger than 6 x 6 pixels). 
-
-If the exact distribution is not necessary, the package provides functionality to approximately sample these distributions.
+This package allows users to compute the functionals area, perimeter, and Euler characteristic. It can generate the exact distributions with an "brute force approach", by essentially going through all possible black and white images (not advised to try out on images larger than 6 x 6 pixels). The following [https://arxiv.org/pdf/1710.03542](paper) describes a method which can be used to sample distributions for even larger images accurately. The authors also have a [https://github.com/michael-klatt/minkmaps](repository) where distributions for images up to 15 x 15 pixels are stored. These can be downloaded and also used in this framework.
 
 ## Installation Guide
 
@@ -23,8 +21,17 @@ julia>]
 
 ## Basic Usage
 
+### Minkowski functionals for a black and white image
 ```julia
 using MinkowskiFunctionals
 img = rand(Bool, 10, 10)
 result = MinkowskiFunctional(img)
 ```
+### Minkowski skymaps from count maps
+```julia
+counts_map = CountsMap(32, 10.0)
+background = 10.0
+dos = DensityOfStates(5)
+mink_map = MinkowskiMap(counts_map, background, dos)
+```
+For window sizes larger than 5 the density of states has to loaded [https://github.com/michael-klatt/minkmaps](here) like this `dos = DensityOfStates(path/to/structure_11x11)`.
