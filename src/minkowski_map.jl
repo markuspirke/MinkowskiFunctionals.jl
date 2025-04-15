@@ -74,7 +74,7 @@ function get_tresholds(local_counts)
 end
 
 function get_tresholds(x::CountsMap)
-    ρ_min = minimum(x.pixels) > 0 ? minimum(x.pixels) : 1
+    ρ_min = minimum(x.pixels) + 1# > 0 ? minimum(x.pixels) : 1
     ρ_max = maximum(x.pixels) > 0 ? maximum(x.pixels) : 1
     return ρ_min:ρ_max
 end

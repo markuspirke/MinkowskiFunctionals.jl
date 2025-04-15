@@ -10,6 +10,7 @@ end
 Base.size(x::CountsMap) = size(x.pixels)
 Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
 Base.setindex!(x::CountsMap, i, j, k) = setindex!(x.pixels, i, j, k)
++(x::CountsMap, y::CountsMap) = CountsMap(x.pixels + y.pixels)
 
 function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
     m, n = x
