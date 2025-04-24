@@ -41,6 +41,12 @@ function compatibility(d::AreaDistribution, f::MinkowskiFunctional)
     return sum(ps[ps .<= p])
 end
 
+function compatibility(d::AreaDistribution, f::Int64)
+    p = pdf(d, f)
+    ps = pdf(d)
+    return sum(ps[ps .<= p])
+end
+
 function compatibility(d::AreaDistribution, x::CountsMap)
     bw_map = BWMap(x, d.ρ)
     f = MinkowskiFunctional(bw_map)
