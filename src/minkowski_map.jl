@@ -70,9 +70,9 @@ end
 
 Calculates which tresholds are used.
 """
-function get_thresholds(local_counts)
-    ρ_min = minimum(local_counts) > 0 ? minimum(local_counts) : 1
-    ρ_max = maximum(local_counts) > 0 ? maximum(local_counts) : 1
+function get_thresholds(x)
+    ρ_min = minimum(x) + 1# > 0 ? minimum(x.pixels) : 1
+    ρ_max = maximum(x) > 0 ? maximum(x) : 1
     return ρ_min:ρ_max
 end
 
