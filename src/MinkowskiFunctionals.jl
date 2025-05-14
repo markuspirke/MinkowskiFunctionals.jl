@@ -1,7 +1,7 @@
 module MinkowskiFunctionals
 
 using Base.Threads
-import Base: getindex, +, append!, size, show
+import Base: getindex, +, append!, size, show, minimum, maximum, abs
 using Distributions
 using DataStructures
 using PaddedViews
@@ -11,7 +11,7 @@ using StatsBase
 using HDF5
 using ProgressMeter
 using Dates
-
+using SearchSortedNearest
 
 export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
     PoissonMinkowskiDistributions, DensityOfStates,
@@ -19,8 +19,9 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Ba
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap, minkowski_map_A, correct_trials, get_tresholds,
-    λ_lima, significance_lima, lima_map, lima_map_roundkernel
+    MinkowskiMap, minkowski_map_A, correct_trials, get_thresholds,
+    λ_lima, significance_lima, lima_map, lima_map_roundkernel,
+    AreaDistributionX, ECCDF
 
 
 include("types.jl")
@@ -32,6 +33,7 @@ include("distributions.jl")
 include("sampling.jl")
 include("minkowski_map.jl")
 include("lima.jl")
+include("test_statistic.jl")
 
 
 end

@@ -101,7 +101,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     background_float = 2.0
     @test MinkowskiMap(counts_map, background, Ω).pixels ≈ MinkowskiMap(counts_map, background_float, Ω).pixels
 
-    ρs = get_tresholds(counts_map)
+    ρs = get_thresholds(counts_map)
     mink_ds = Dict(ρ => MinkowskiDistribution(Ω, background_float, ρ) for ρ in ρs)
     @test MinkowskiMap(counts_map, background, Ω).pixels ≈ MinkowskiMap(counts_map, background_float, mink_ds).pixels
 

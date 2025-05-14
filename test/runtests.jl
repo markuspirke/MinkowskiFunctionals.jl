@@ -11,5 +11,6 @@ using Test
     include("minkowski_map.jl")
     include("utils.jl")
     include("lima.jl")
+    include("test_statistic.jl")
     # Write your tests here.
 end

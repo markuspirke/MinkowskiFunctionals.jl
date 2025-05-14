@@ -13,6 +13,9 @@ end
 
 Base.size(x::MinkowskiMap) = size(x.pixels)
 Base.getindex(x::MinkowskiMap, i, j) = x.pixels[i, j]
+minimum(x::MinkowskiMap) = minimum(x.pixels)
+maximum(x::MinkowskiMap) = minimum(x.pixels)
+abs(x::MinkowskiMap) = minimum(x.pixels)
 
 get_sign(d::AreaDistribution, x::CountsMap) = d.p.p*d.p.n > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 get_sign(d::AreaDistribution, x::Matrix{Int64}) = d.p.p*d.p.n > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
@@ -63,17 +66,17 @@ function correction!(x, b, target)
 end
 
 """
-    function get_tresholds(local_counts, local_background)
+    function get_thresholds(local_counts, local_background)
 
 Calculates which tresholds are used.
 """
-function get_tresholds(local_counts)
+function get_thresholds(local_counts)
     ρ_min = minimum(local_counts) > 0 ? minimum(local_counts) : 1
     ρ_max = maximum(local_counts) > 0 ? maximum(local_counts) : 1
     return ρ_min:ρ_max
 end
 
-function get_tresholds(x::CountsMap)
+function get_thresholds(x::CountsMap)
     ρ_min = minimum(x.pixels) + 1# > 0 ? minimum(x.pixels) : 1
     ρ_max = maximum(x.pixels) > 0 ? maximum(x.pixels) : 1
     return ρ_min:ρ_max
@@ -98,7 +101,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -137,7 +140,7 @@ function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -207,7 +210,7 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             local_counts = x[i-l:i+l, j-l:j+l]
             local_background = b[i-l:i+l, j-l:j+l]
             correction!(local_counts, local_background, b[i, j])
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -238,7 +241,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates)
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)
-    ρs = get_tresholds(x.pixels)
+    ρs = get_thresholds(x.pixels)
     mink_ds = Dict(ρ=>MinkowskiDistribution(Ω, b, ρ) for ρ in ρs)
     Threads.@threads for j in l+1:m-l
         for i in l+1:n-l
@@ -246,7 +249,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates)
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -282,7 +285,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, MinkowskiDi
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -312,7 +315,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, Mink
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -348,7 +351,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, AreaDistrib
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
@@ -379,7 +382,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, Area
                 continue
             end
             local_counts = x[i-l:i+l, j-l:j+l]
-            ρs = get_tresholds(local_counts)
+            ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
             αs_ρ = ones(l_ρ)
             signs_ρ = zeros(l_ρ)
