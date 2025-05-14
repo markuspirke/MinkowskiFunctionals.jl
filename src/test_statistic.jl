@@ -2,6 +2,13 @@ using StatsBase
 using DataStructures, Distributions
 using MinkowskiFunctionals
 
+"""
+    struct AreaDistributionX
+
+This defines a datatype which stores the area probability distribution
+for a given system size and given λ and ρ. In addition this stores
+precalculated p-values.
+"""
 struct AreaDistributionX
     n::Int
     λ::Float64
@@ -110,22 +117,24 @@ function calc_ts!(dd::DefaultDict{Int64, AreaDistributionX, Int64}, x::Union{Cou
     return summed_ts
 end
 
-function sample_pvalues(dd, b, N)
-    sum_pvalues = zeros(N)
-    L = Int(sqrt(dd[1].n))
-    @threads for i in 1:N
-        sum_pvalues[i] = calc_ts!(dd, CountsMap(L, b))
-    end
+# function sample_pvalues(dd, b, N)
+#     sum_pvalues = zeros(N)
+#     L = Int(sqrt(dd[1].n))
+#     @threads for i in 1:N
+#         sum_pvalues[i] = calc_ts!(dd, CountsMap(L, b))
+#     end
 
-    return sum_pvalues
-end
+#     return sum_pvalues
+# end
 
-function sample(W, N, λ)
-    d = Dict(1 => AreaDistributionX(W^2, λ, 1))
-    dd = DefaultDict(0, d)
-    ts = sample_pvalues(dd, λ, N)
-    e_cdf = ecdf(ts)
-    xs = 1:0.01:maximum(ts)
-    ys = p2σ.(1 .- e_cdf.(xs))
-    return xs, ys, dd
-end
+# function sample(W, N, λ)
+#     d = Dict(1 => AreaDistributionX(W^2, λ, 1))
+#     dd = DefaultDict(0, d)
+#     ts = sample_pvalues(dd, λ, N)
+#     e_cdf = ecdf(ts)
+#     xs = 1:0.01:maximum(ts)
+#     ys = p2σ.(1 .- e_cdf.(xs))
+#     return xs, ys, dd
+# end
+
+# function MinkowskiMap()
