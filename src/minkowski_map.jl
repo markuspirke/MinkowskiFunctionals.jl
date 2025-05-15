@@ -166,23 +166,23 @@ This calculates a MinkowskiMap for a fixed and constant background based on only
 function MinkowskiMap(x::CountsMap, b::Float64, L::Int64)
 
     m, n = size(x.pixels)
-    ρs = b:maximum(x.pixels)
+    ρs = get_thresholds(x)
     l_ρ = length(ρs)
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)
-    mink_ds = [AreaDistribution(L^2, b, ρ) for ρ in ρs]
+    mink_ds = Dict(ρ => AreaDistribution(L^2, b, ρ) for ρ in ρs)
     for j in l+1:m-l
         for i in l+1:n-l
             αs_ρ = zeros(l_ρ)
             signs_ρ = zeros(l_ρ)
             for (k, ρ) in enumerate(ρs)
-                αs_ρ[k] = compatibility(mink_ds[k], x[i-l:i+l, j-l:j+l])
-                signs_ρ[k] = get_sign(mink_ds[k], x[i-l:i+l, j-l:j+l])
+                αs_ρ[k] = compatibility(mink_ds[ρ], x[i-l:i+l, j-l:j+l])
+                signs_ρ[k] = get_sign(mink_ds[ρ], x[i-l:i+l, j-l:j+l])
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
-            @inbounds αs[i-l, j-l] = 1 - (1 - α)^l_ρ
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
             @inbounds signs[i-l, j-l] = signs_ρ[idx]
         end
     end
