@@ -71,7 +71,7 @@ struct MinkowskiDistribution
     λ
     ρ::Int
     p::Accumulator
-    pvalue::Union{Accumulator, Missing}
+    pvalues::Union{Accumulator, Missing}
 end
 
 """
@@ -79,7 +79,7 @@ end
 
 This generate the joint probability distribution out of the density of states.
 """
-function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ; pvalue=false)
+function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ; pvalues=true)
     p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
 
     distribution = Accumulator{MinkowskiFunctional, Float64}()
@@ -87,20 +87,48 @@ function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ; pvalue=false)
     for (key, value) in Ω.data
         distribution[key] += value * p^key.A * (1 - p)^(Ω.n^2 - key.A)
     end
-
     mink_distribution = MinkowskiDistribution(Ω.n, p, λ, ρ, distribution, missing)
 
-    if pvalue # THIS CALCULATES PVALUES FOR ALL POSSIBLE FUNCTIONALS
-        d_pvalue = Accumulator{MinkowskiFunctional, Float64}()
-        for (key, value) in distribution
-            c = compatibility(mink_distribution, key)
-            d_pvalue[key] = c
-        end
-        return MinkowskiDistribution(Ω.n, p, λ, ρ, distribution, d_pvalue)
+    if pvalues
+        d_pvalues = get_pvalues(distribution)
+        return mink_distribution = MinkowskiDistribution(Ω.n, p, λ, ρ, distribution, d_pvalues)
     else
         return mink_distribution
     end
 end
+
+function get_pvalues(d::Accumulator{MinkowskiFunctional, Float64})
+    ks, vs = collect(d |> keys), collect(d |> values)
+    idxs = sortperm(vs)
+    ks, vs = ks[idxs], vs[idxs]
+    ps = zeros(length(ks))
+    modified_cumsum!(ps, vs)
+    d_pvalues = Dict(k => p for (k, p) in zip(ks, ps))
+
+    return Accumulator(d_pvalues)
+
+end
+
+function modified_cumsum!(A, B)
+    x = 0.0
+    i = 1
+    while i <= length(B)
+        b = B[i]
+        j = i
+        # Find how many times b repeats
+        while j <= length(B) && B[j] == b
+            j += 1
+        end
+        count = j - i
+        total = b * count
+        x += total
+        for k in i:j-1
+            A[k] = x
+        end
+        i = j
+    end
+end
+
 
 function Base.show(io::IO, P::MinkowskiDistribution)
     print(io, "Minkowski distribution for n=$(P.n), λ=$(P.λ) and ρ=$(P.ρ).")
@@ -115,9 +143,13 @@ function Distributions.pdf(d::MinkowskiDistribution)
 end
 
 function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
-    p = pdf(d, f)
-    ps = pdf(d)
-    return sum(ps[ps .<= p])
+    if d.pvalues |> ismissing
+        p = pdf(d, f)
+        ps = pdf(d)
+        return sum(ps[ps .<= p])
+    else
+        return d.pvalues[f]
+    end
 end
 
 function compatibility(d::MinkowskiDistribution, x::CountsMap)
@@ -216,7 +248,7 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
                 if ismissing(distribution.pvalue)
                     pvalues = [-1 for _ in 1:length(ps)] # IF NO PVALUES RETURN -1
                 else
-                    pvalues = collect(values(distribution.pvalue))
+                    pvalues = collect(values(distribution.pvalues))
                 end
                 xs = [(p, α) for (p, α) in zip(ps, pvalues)]
                 write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
@@ -228,7 +260,7 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
             if ismissing(distribution.pvalue)
                 pvalues = [-1 for _ in 1:length(ps)]
             else
-                pvalues = collect(values(distribution.pvalue))
+                pvalues = collect(values(distribution.pvalues))
             end
             xs = [(p, α) for (p, α) in zip(ps, pvalues)]
             write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)
@@ -244,10 +276,10 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
         write_dataset(h5f, "$(n)/macrostates", collect(keys(distribution.p)))
 
         ps = collect(values(distribution.p))
-        if ismissing(distribution.pvalue)
+        if ismissing(distribution.pvalues)
             pvalues = [-1 for _ in 1:length(ps)]
         else
-            pvalues = collect(values(distribution.pvalue))
+            pvalues = collect(values(distribution.pvalues))
         end
         xs = [(p, α) for (p, α) in zip(ps, pvalues)]
         write_dataset(h5f, "$(n)/λ=$(λ)/ρ=$(ρ)", xs)

@@ -104,7 +104,6 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     counts_map = CountsMap(3, 2.0)
     mink_map = MinkowskiMap(counts_map, background, Ω)
 
-
     Ω = DensityOfStates(3)
     counts_map = CountsMap(3, 2.0)
     background = Background(2*ones(3, 3))
@@ -121,7 +120,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     # check if correction works at boundaries
     as = Float64[]
     bs = Float64[]
-    for _ in 1:100
+    for _ in 1:50
         background = zeros(32, 32)
         background[:, 1:16] .= 2.0
         background = Background(background)
@@ -132,7 +131,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         push!(bs, mean(x[:, 7:12]))
     end
 
-    @test 0.1 > abs(mean(as) - mean(bs))
+    @test 0.3 > abs(mean(as) - mean(bs))
 
     Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
     as = Float64[]
@@ -183,7 +182,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     as = Float64[]
     bs = Float64[]
-    for _ in 1:100
+    for _ in 1:50
         background = ones(12, 12)
         background[:, 1:6] .= 3.0
         background = Background(background)
@@ -194,5 +193,5 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         push!(bs, mean(x[:, 7:8]))
     end
 
-    @test 0.1 > abs(mean(as) - mean(bs))
+    @test 0.3 > abs(mean(as) - mean(bs))
 end

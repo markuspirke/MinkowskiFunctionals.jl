@@ -1,5 +1,8 @@
 using MinkowskiFunctionals
 using Distributions
+using HDF5
+using StatsBase
+using DataStructures
 using Test
 
 const SAMPLES_DIR = joinpath(@__DIR__, "samples")
@@ -33,7 +36,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     λ = 10.0
     ρ = 10
     Ω = DensityOfStates(n)
-    d = MinkowskiDistribution(Ω, λ, ρ)
+    d = MinkowskiDistribution(Ω, λ, ρ, pvalues=false)
     h5open("foo.h5", "w") do h5f
         append!(h5f, d)
     end
@@ -44,10 +47,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         @test d_loaded.ρ == ρ
         @test d_loaded.λ == λ
         @test d_loaded.p == d.p
-        @test ismissing(d_loaded.pvalue)
+        @test ismissing(d_loaded.pvalues)
     end
 
-    d = MinkowskiDistribution(Ω, λ, ρ, pvalue=true)
+    d = MinkowskiDistribution(Ω, λ, ρ, pvalues=true)
     h5open("foo.h5", "w") do h5f
         append!(h5f, d)
     end
@@ -58,10 +61,14 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
         @test d_loaded.ρ == ρ
         @test d_loaded.λ == λ
         @test d_loaded.p == d.p
-        @test d_loaded.pvalue == d.pvalue
+        d_pvalues = sort(collect(values(d.pvalues)))
+        d_loaded_pvalues = sort(collect(values(d_loaded.pvalues)))
+        @test d_loaded_pvalues ≈ d_pvalues
     end
 
     rm("foo.h5")
+
+
 
     # TEST SIGN CONVENTION
     # n, λ, ρ = 9, 10, 11
