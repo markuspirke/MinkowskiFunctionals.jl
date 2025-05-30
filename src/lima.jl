@@ -19,7 +19,7 @@ function significance_lima(Non, Noff, a=1)
 end
 
 """
-    function lima_map(img::CountsMap, background::Matrix{Float64}, L::Int64)
+    function lima_map(img::CountsMap, background::Background, L::Int64)
 
 This takes a counts map an returns a significance map based on the
 formula from the lima paper. It uses an extended region to calculate
@@ -39,6 +39,32 @@ function lima_map(img::CountsMap, background::Background, L::Int64)
             b_window = background[i-l:i+l, j-l:j+l]# .* round_mask
             σ = significance_lima.(sum(window), sum(b_window))
             s = sum(window) > sum(b_window) ? 1.0 : -1.0
+            σs[i-l,j-l] = σ * s
+        end
+    end
+    σs
+end
+
+"""
+    function lima_map(img::CountsMap, background::Matrix{Float64}, L::Int64)
+
+This takes a counts map an returns a significance map based on the
+formula from the lima paper. It uses an extended region to calculate
+the signifiance of the center pixels by summing up all counts in the region,
+these are the ON counts and as OFF counts the correct λ is used which is
+multiplied by the number of pixels L^2, where L is the window size.
+"""
+function lima_map(img::CountsMap, background::Float64, L::Int64)
+    m, n = size(img)
+    l = floor(Int, L/2)
+    r = floor(Int, L/2)
+    σs = zeros(n - 2l, m - 2l)
+
+    for j in l+1:m-l
+        for i in l+1:n-l
+            window = img[i-l:i+l, j-l:j+l]# .* round_mask
+            σ = significance_lima.(sum(window), L^2*background)
+            s = sum(window) > L^2*background ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
     end
