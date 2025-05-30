@@ -12,8 +12,9 @@ struct AreaDistribution
 end
 
 function AreaDistribution(n, λ, ρ)
-    d_poisson = Distributions.Poisson(λ)
-    p = 1 - cdf(d_poisson, ρ-1)
+    # d_poisson = Distributions.Poisson(λ)
+    # p = 1 - cdf(d_poisson, ρ-1)
+    p, _ = gamma_inc(ρ, λ)
     d_A = Binomial(n, p)
 
     AreaDistribution(n, λ, ρ, d_A)
@@ -80,8 +81,8 @@ end
 This generate the joint probability distribution out of the density of states.
 """
 function MinkowskiDistribution(Ω::DensityOfStates, λ, ρ; pvalues=true)
-    p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
-
+    # p = 1 - cdf(Distributions.Poisson(λ), ρ-1)
+    p, _ = gamma_inc(ρ, λ)
     distribution = Accumulator{MinkowskiFunctional, Float64}()
 
     for (key, value) in Ω.data
