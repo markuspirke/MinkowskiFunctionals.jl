@@ -303,7 +303,7 @@ function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::Dict{Int64, MinkowskiDi
     return MinkowskiMap(αs .* signs)
 end
 
-function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, MinkowskiDistribution, MinkowskiDistribution})
+function MinkowskiMap(x::CountsMap, b::Float64, mink_ds::DefaultDict{Int64, MinkowskiDistribution, Int64})
     m, n = size(x)
     L = first(values(mink_ds)).n
     l = floor(Int, L/2)
