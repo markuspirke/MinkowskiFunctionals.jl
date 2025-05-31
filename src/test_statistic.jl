@@ -116,6 +116,27 @@ function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, AreaDistributionX, I
     return eccdf(ts)
 end
 
+function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+    ts = calc_ts(dd, x)
+
+    return eccdf(ts)
+end
+
+function compatibility(ecdf::T, dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF}
+    ts = calc_ts(dd, x)
+    return ecdf(ts)
+end
+
+function calc_ts(dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+    ρs = get_thresholds(x)
+    summed_ts = 0.0
+    for ρ in ρs
+        summed_ts += -log10(compatibility(dd[ρ], x))
+    end
+
+    return summed_ts
+end
+
 function calc_ts!(dd::DefaultDict{Int64, AreaDistributionX, Int64}, x::Union{CountsMap, Matrix{Int64}})
     b = dd[first(eachindex(dd))].λ
     L, _ = size(x)
@@ -144,6 +165,16 @@ function calc_ts(dd::DefaultDict{Int64, AreaDistributionX, Int64}, x::Union{Coun
     return summed_ts
 end
 
+function calc_ts(dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+    ρs = get_thresholds(x)
+    summed_ts = 0.0
+    for ρ in ρs
+        summed_ts += -log10(compatibility(dd[ρ], x))
+    end
+
+    return summed_ts
+end
+
 function update_distributions!(dd::DefaultDict{Int64, AreaDistributionX, Int64}, x::CountsMap)
     b = dd[first(eachindex(dd))].λ
     n = dd[first(eachindex(dd))].n
@@ -156,7 +187,7 @@ function update_distributions!(dd::DefaultDict{Int64, AreaDistributionX, Int64},
     end
 end
 
-function MinkowskiMap(x::CountsMap, mink_ds, eccdf::ECCDF)
+function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, AreaDistributionX, Int64}, eccdf::ECCDF)
     λ = mink_ds[first(eachindex(mink_ds))].λ
     m, n = size(x)
     L = Int(sqrt(mink_ds[1].n))
@@ -174,24 +205,38 @@ function MinkowskiMap(x::CountsMap, mink_ds, eccdf::ECCDF)
     MinkowskiMap(αs .* signs)
 end
 
-# function sample_pvalues(dd, b, N)
-#     sum_pvalues = zeros(N)
-#     L = Int(sqrt(dd[1].n))
-#     @threads for i in 1:N
-#         sum_pvalues[i] = calc_ts!(dd, CountsMap(L, b))
-#     end
+function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, MinkowskiDistribution, Int64}, eccdf::ECCDF)
+    λ = mink_ds[first(eachindex(mink_ds))].λ
+    m, n = size(x)
+    L = mink_ds[1].n
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            local_counts = x[i-l:i+l, j-l:j+l]
+            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
+            αs[i-l, j-l] = pvalue
+            signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
+        end
+    end
+    MinkowskiMap(αs .* signs)
+end
 
-#     return sum_pvalues
-# end
-
-# function sample(W, N, λ)
-#     d = Dict(1 => AreaDistributionX(W^2, λ, 1))
-#     dd = DefaultDict(0, d)
-#     ts = sample_pvalues(dd, λ, N)
-#     e_cdf = ecdf(ts)
-#     xs = 1:0.01:maximum(ts)
-#     ys = p2σ.(1 .- e_cdf.(xs))
-#     return xs, ys, dd
-# end
-
-# function MinkowskiMap()
+function MinkowskiMap(x::CountsMap, mink_ds, eccdf::T) where {T <: ECDF}
+    λ = mink_ds[first(eachindex(mink_ds))].λ
+    m, n = size(x)
+    L = mink_ds[1].n
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            local_counts = x[i-l:i+l, j-l:j+l]
+            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
+            αs[i-l, j-l] = pvalue
+            signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
+        end
+    end
+    MinkowskiMap(αs .* signs)
+end
