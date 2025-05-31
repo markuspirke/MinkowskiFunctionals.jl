@@ -7,6 +7,11 @@ function λ_lima(Non, Noff, a=1)
     return (a/(a+1) * (Non + Noff)/Non)^Non * (1/(a+1) * (Non + Noff)/Noff)^Noff
 end
 
+function significance_lima_exact(Non, λ)
+    return sqrt(2) * sqrt(Non * log(Non/λ) + λ - Non)
+end
+
+
 """
     function significance_lima(Non, Noff, a=1)
 
@@ -37,7 +42,7 @@ function lima_map(img::CountsMap, background::Background, L::Int64)
         for i in l+1:n-l
             window = img[i-l:i+l, j-l:j+l]# .* round_mask
             b_window = background[i-l:i+l, j-l:j+l]# .* round_mask
-            σ = significance_lima.(sum(window), sum(b_window))
+            σ = significance_lima_exact.(sum(window), sum(b_window))
             s = sum(window) > sum(b_window) ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
@@ -59,11 +64,10 @@ function lima_map(img::CountsMap, background::Float64, L::Int64)
     l = floor(Int, L/2)
     r = floor(Int, L/2)
     σs = zeros(n - 2l, m - 2l)
-
     for j in l+1:m-l
         for i in l+1:n-l
             window = img[i-l:i+l, j-l:j+l]# .* round_mask
-            σ = significance_lima.(sum(window), L^2*background)
+            σ = significance_lima_exact.(sum(window), L^2*background)
             s = sum(window) > L^2*background ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
@@ -91,7 +95,7 @@ function lima_map(img::CountsMap, background::Background, mask::Union{BitMatrix,
         for i in l+1:n-l
             window = img[i-l:i+l, j-l:j+l] .* mask
             b_window = background[i-l:i+l, j-l:j+l] .* mask
-            σ = significance_lima.(sum(window), sum(b_window))
+            σ = significance_lima_exact.(sum(window), sum(b_window))
             s = sum(window) > sum(b_window) ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
