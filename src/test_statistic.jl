@@ -124,7 +124,7 @@ end
 
 function compatibility(ecdf::T, dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF}
     ts = calc_ts(dd, x)
-    return ecdf(ts)
+    return 1.0 - ecdf(ts)
 end
 
 function calc_ts(dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
