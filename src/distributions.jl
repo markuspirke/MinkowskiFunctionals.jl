@@ -1,15 +1,21 @@
+abstract type AbstractMinkowskiDistribution end
 """
     struct AreaDistribution
 
 This defines a datatype which stores the area probability distribution
 for a given system size and given λ and ρ.
 """
-struct AreaDistribution
+struct AreaDistribution <: AbstractMinkowskiDistribution
     n::Int
     λ::Float64
     ρ::Int
     p::Binomial{Float64}
 end
+
+function window_size(d::AreaDistribution)
+    return Int(sqrt(d.n))
+end
+
 
 function AreaDistribution(n, λ, ρ)
     # d_poisson = Distributions.Poisson(λ)
@@ -66,13 +72,17 @@ end
 This defines a datatype which stores the joint probability distribution
 for a given system size and given λ and ρ.
 """
-struct MinkowskiDistribution
+struct MinkowskiDistribution <: AbstractMinkowskiDistribution
     n::Int
     p_black::Float64
     λ
     ρ::Int
     p::Accumulator
     pvalues::Union{Accumulator, Missing}
+end
+
+function window_size(d::MinkowskiDistribution)
+    return d.n
 end
 
 """
