@@ -112,10 +112,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     ρs = get_thresholds(counts_map)
     mink_ds = Dict(ρ => MinkowskiDistribution(Ω, background_float, ρ) for ρ in ρs)
-    @test MinkowskiMap(counts_map, background, Ω).pixels ≈ MinkowskiMap(counts_map, background_float, mink_ds).pixels
+    @test MinkowskiMap(counts_map, background, Ω).pixels ≈ MinkowskiMap(counts_map, mink_ds).pixels
 
     mink_ds = Dict(ρ => AreaDistribution(3^2, background_float, ρ) for ρ in ρs)
-    @test MinkowskiMap(counts_map, background, 3).pixels ≈ MinkowskiMap(counts_map, background_float, mink_ds).pixels
+    @test MinkowskiMap(counts_map, background, 3).pixels ≈ MinkowskiMap(counts_map, mink_ds).pixels
 
     # check if correction works at boundaries
     as = Float64[]
