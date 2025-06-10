@@ -22,7 +22,7 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Ba
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
     MinkowskiMap, minkowski_map_A, correct_trials, get_thresholds,
     λ_lima, significance_lima, lima_map, lima_map_roundkernel,
-    AreaDistributionX, ECCDF, calc_ts!, calc_ts, update_distributions!
+    ECCDF, calc_ts!, calc_ts, update_distributions!
 
 
 include("types.jl")

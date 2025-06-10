@@ -10,6 +10,7 @@ struct AreaDistribution <: AbstractMinkowskiDistribution
     λ::Float64
     ρ::Int
     p::Binomial{Float64}
+    pvalues::Union{Accumulator, Missing}
 end
 
 function window_size(d::AreaDistribution)
@@ -17,13 +18,28 @@ function window_size(d::AreaDistribution)
 end
 
 
-function AreaDistribution(n, λ, ρ)
-    # d_poisson = Distributions.Poisson(λ)
-    # p = 1 - cdf(d_poisson, ρ-1)
+function AreaDistribution(n, λ, ρ; pvalues=true)
     p, _ = gamma_inc(ρ, λ)
     d_A = Binomial(n, p)
 
-    AreaDistribution(n, λ, ρ, d_A)
+    if pvalues
+        d_pvalues = get_pvalues(d_A)
+        return AreaDistribution(n, λ, ρ, d_A, d_pvalues)
+    else
+        return AreaDistribution(n, λ, ρ, d_A, missing)
+    end
+end
+
+function get_pvalues(d::Binomial{Float64})
+    ks, vs = support(d), pdf(d)
+    idxs = sortperm(vs)
+    ks, vs = ks[idxs], vs[idxs]
+    ps = zeros(length(ks))
+    modified_cumsum!(ps, vs)
+    d_pvalues = Dict(k => p for (k, p) in zip(ks, ps))
+
+    return Accumulator(d_pvalues)
+
 end
 
 function Base.show(io::IO, P::AreaDistribution)
@@ -49,9 +65,13 @@ function compatibility(d::AreaDistribution, f::MinkowskiFunctional)
 end
 
 function compatibility(d::AreaDistribution, f::Int64)
-    p = pdf(d, f)
-    ps = pdf(d)
-    return sum(ps[ps .<= p])
+    if d.pvalues |> ismissing
+        p = pdf(d, f)
+        ps = pdf(d)
+        return sum(ps[ps .<= p])
+    else
+        return d.pvalues[f]
+    end
 end
 
 function compatibility(d::AreaDistribution, x::CountsMap)

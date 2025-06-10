@@ -2,36 +2,12 @@ using MinkowskiFunctionals
 using Distributions
 using StatsBase
 using DataStructures
+using HDF5
 using Test
 
 const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
 @testset "test-statistic" begin
-    x = AreaDistributionX(25, 10.0, 5)
-    y = AreaDistribution(25, 10.0, 5)
-    countsmap = CountsMap(5, 10.0)
-    @test compatibility(x, countsmap) ≈ compatibility(y, countsmap)
-
-    x = AreaDistributionX(25, 10.0, 10)
-    y = AreaDistribution(25, 10.0, 10)
-    countsmap = CountsMap(5, 10.0)
-    @test compatibility(x, countsmap) ≈ compatibility(y, countsmap)
-
-    x = AreaDistributionX(25, 10.0, 15)
-    y = AreaDistribution(25, 10.0, 15)
-    countsmap = CountsMap(5, 10.0)
-    @test compatibility(x, countsmap) ≈ compatibility(y, countsmap)
-
-    f = h5open("foo.h5", "w")
-    append!(f, x)
-    y = AreaDistributionX(f, x.ρ)
-    @test x.n == y.n
-    @test x.λ == y.λ
-    @test x.p == y.p
-    @test x.pvalues == y.pvalues
-    close(f)
-    rm("foo.h5")
-
     λ = 10.0
     L = 15
     xs = 1:10
@@ -51,7 +27,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     L = 5
     λ = 10.0
-    d = Dict(1 => AreaDistributionX(L^2, λ, 1))
+    d = Dict(1 => AreaDistribution(L^2, λ, 1))
     dd = DefaultDict(0, d)
     ts = [calc_ts!(dd, CountsMap(L, λ)) for _ in 1:100]
     e_cdf = ecdf(ts)
