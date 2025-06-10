@@ -321,3 +321,21 @@ function append!(h5f::HDF5.File, distribution::MinkowskiDistribution)
         # attributes(h5f["$(n)/λ=$(λ)/ρ=$(ρ)"])[Dates.format(now(), dateformat"yyyy-mm-dd")] = "v0.4.0"#Pkg.TOML.parse(read("Project.toml", String))["version"]
     end
 end
+
+struct MinkowskiFunctionalX
+    A::Int16
+    P::Int16
+    χ::Int16
+    p::Float64
+end
+
+function write_pvalues(path::AbstractString, d::MinkowskiDistribution)
+    xs = d.pvalues
+    ys = [MinkowskiFunctionalX(k.A, k.P, k.χ, v) for (k, v) in xs]
+    write(joinpath(path, "lambda=$(d.λ)_rho=$(d.ρ).dat"), ys)
+end
+
+function read_pvalues(fname::AbstractString)
+    xs = reinterpret(MinkowskiFunctionalX, read(fname))
+    return Dict(MinkowskiFunctional(x.A, x.P, x.χ) => x.p for x in xs)
+end

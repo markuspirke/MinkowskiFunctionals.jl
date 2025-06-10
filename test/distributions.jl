@@ -68,6 +68,15 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
     rm("foo.h5")
 
+    Ω = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    d = MinkowskiDistribution(Ω, 10.0, 10)
+    write_pvalues(".", d)
+    pvalues = read_pvalues("lambda=10.0_rho=10.dat")
+    @test pvalues == d.pvalues
+    rm("lambda=10.0_rho=10.dat")
+
+
+
 
 
     # TEST SIGN CONVENTION

@@ -92,9 +92,9 @@ end
 This is a data type for MinkowskiFunctionals.
 """
 struct MinkowskiFunctional
-    A::Int64
-    P::Int64
-    χ::Int64
+    A::Int16
+    P::Int16
+    χ::Int16
 end
 
 function Base.show(io::IO, m::MinkowskiFunctional)
@@ -112,3 +112,4 @@ Base.convert(T::Type{Int128}, x::IntX) = T(x.base) * T(T(10)^(x.exp))::T
 Base.convert(T::Type{BigInt}, x::IntX) = T(x.base) * T(T(10)^(x.exp))::T
 
 +(a::IntX, b::IntX) = IntX(a.base + b.base, a.exp + b.exp)
+
