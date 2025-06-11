@@ -173,6 +173,12 @@ function Distributions.pdf(d::MinkowskiDistribution)
     return collect(values(d.p))
 end
 
+function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
+    bw_map = BWMap(x, ρ)
+    f = MinkowskiFunctional(bw_map)
+    return d[f]
+end
+
 function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
     if d.pvalues |> ismissing
         p = pdf(d, f)

@@ -284,3 +284,47 @@ function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix
     end
     return MinkowskiMap(αs .* signs)
 end
+
+function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractString)
+    m, n = size(x.pixels)
+    l = floor(Int, L/2)
+    αs = ones(n - 2l, m - 2l)
+    signs = ones(n - 2l, m - 2l)
+    ρs_global = 1:15#get_thresholds(x)
+    # ρs_global += 5
+    λs = unique(b.pixels)
+    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+
+    for (λ, idxs) in idx_dict
+        if λ == 0.0
+            continue
+        end
+        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in ρs_global)
+        for idx in idxs
+            i, j = idx.I
+            if l < i <= m-l && l < j <= n-l
+                local_counts = x[i-l:i+l, j-l:j+l]
+                local_background = b[i-l:i+l, j-l:j+l]
+                correction!(local_counts, local_background, b[i, j])
+                ρs = get_thresholds(local_counts)
+                l_ρ = length(ρs)
+                αs_ρ = ones(l_ρ)
+                signs_ρ = zeros(l_ρ)
+                for k in 1:length(ρs)
+                    αs_ρ[k] = compatibility(pvalues_ρ[ρs[k]], ρs[k], local_counts)
+                    signs_ρ[k] = get_sign(λ, ρs[k], local_counts)
+                end
+                idx = argmin(αs_ρ)
+                α = αs_ρ[idx]
+                @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+                @inbounds signs[i-l, j-l] = signs_ρ[idx]
+            end
+        end
+    end
+    return MinkowskiMap(αs .* signs)
+end
+
+function get_sign(λ, ρ, x::Matrix{Int64})
+    p_black, _ = gamma_inc(ρ, λ)
+    return p_black * length(x) > sum(BWMap(x, ρ).pixels) ? -1.0 : 1.0
+end
