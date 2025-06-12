@@ -290,8 +290,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractStrin
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    ρs_global = 1:15#get_thresholds(x)
-    # ρs_global += 5
+    ρs_global = minimum(x.pixels)+1:maximum(x.pixels)+10
     λs = unique(b.pixels)
     idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
 
