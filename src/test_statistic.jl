@@ -11,7 +11,6 @@ end
 
 function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
     xs = vcat(range(minimum(ecdf), maximum(ecdf), N))
-    xs[end] -= 1e-8
     ys = 1 .- ecdf.(xs)
 
     ECCDF(λ, L, length(ecdf.sorted_values), SortedDict(Dict(x=>y for (x,y) in zip(xs, ys))))
@@ -32,28 +31,26 @@ function (eccdf::ECCDF)(x::Float64)
     idx = searchsortedlast(ks, x)
     idx == 0 && return 1.0
     closest_x = ks[idx]
-
-    return eccdf.eccdf[closest_x]
+    y = eccdf.eccdf[closest_x]
+    return y > 0.0 ? y : 1/eccdf.N
 end
 
-function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, AreaDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
 
     return eccdf(ts)
 end
 
-function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+function compatibility(ecdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
-
-    return eccdf(ts)
+    if 1.0 - ecdf(ts) > 0.0
+        return 1.0 - ecdf(ts)
+    else
+        return length(e_cdf.sorted_values)
+    end
 end
 
-function compatibility(ecdf::T, dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF}
-    ts = calc_ts(dd, x)
-    return 1.0 - ecdf(ts)
-end
-
-function calc_ts(dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
+function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ρs = get_thresholds(x)
     summed_ts = 0.0
     for ρ in ρs
@@ -81,25 +78,6 @@ function calc_ts!(dd::DefaultDict{Int64, AreaDistribution, Int64}, x::Union{Coun
     return summed_ts
 end
 
-function calc_ts(dd::DefaultDict{Int64, AreaDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
-    ρs = get_thresholds(x)
-    summed_ts = 0.0
-    for ρ in ρs
-        summed_ts += -log10(compatibility(dd[ρ], x))
-    end
-
-    return summed_ts
-end
-
-function calc_ts(dd::DefaultDict{Int64, MinkowskiDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
-    ρs = get_thresholds(x)
-    summed_ts = 0.0
-    for ρ in ρs
-        summed_ts += -log10(compatibility(dd[ρ], x))
-    end
-
-    return summed_ts
-end
 
 function update_distributions!(dd::DefaultDict{Int64, AreaDistribution, Int64}, x::CountsMap)
     b = dd[first(eachindex(dd))].λ
@@ -113,10 +91,10 @@ function update_distributions!(dd::DefaultDict{Int64, AreaDistribution, Int64}, 
     end
 end
 
-function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, AreaDistribution, Int64}, eccdf::ECCDF)
+function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, T, Int64}, eccdf::ECCDF) where {T<:AbstractMinkowskiDistribution}
     λ = mink_ds[first(eachindex(mink_ds))].λ
     m, n = size(x)
-    L = Int(sqrt(mink_ds[1].n))
+    L = window_size(mink_ds[1])
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)
@@ -131,28 +109,10 @@ function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, AreaDistribution
     MinkowskiMap(αs .* signs)
 end
 
-function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, MinkowskiDistribution, Int64}, eccdf::ECCDF)
+function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf::T) where {S<:AbstractMinkowskiDistribution, T<:ECDF}
     λ = mink_ds[first(eachindex(mink_ds))].λ
     m, n = size(x)
-    L = mink_ds[1].n
-    l = floor(Int, L/2)
-    αs = zeros(n - 2l, m - 2l)
-    signs = zeros(n - 2l, m - 2l)
-    Threads.@threads for j in l+1:m-l
-        for i in l+1:n-l
-            local_counts = x[i-l:i+l, j-l:j+l]
-            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
-            αs[i-l, j-l] = pvalue
-            signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
-        end
-    end
-    MinkowskiMap(αs .* signs)
-end
-
-function MinkowskiMap(x::CountsMap, mink_ds, eccdf::T) where {T <: ECDF}
-    λ = mink_ds[first(eachindex(mink_ds))].λ
-    m, n = size(x)
-    L = mink_ds[1].n
+    L = window_size(mink_ds[1])
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)

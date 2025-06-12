@@ -38,5 +38,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     update_distributions!(dd, counts_map)
     mink_map = MinkowskiMap(counts_map, dd, eccdf)
     @test !isnan(maximum(p2σ(mink_map)))
+    mink_map = MinkowskiMap(counts_map, dd, e_cdf)
+    @test !isnan(maximum(p2σ(mink_map)))
 
 end
