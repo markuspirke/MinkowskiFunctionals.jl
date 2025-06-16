@@ -6,14 +6,59 @@ struct ECCDF
     λ::Float64
     L::Int64
     N::Int64
-    eccdf::SortedDict{Float64, Float64}
+    ts::Vector{Float64}
+    pvalues::Vector{Float64}
+end
+
+function find_max_threshold(λ)
+    ρ = 1
+    p = 1.0
+    while p > 1e-12
+        p, _ = gamma_inc(ρ, λ)
+        ρ += 1
+    end
+
+    return ρ
 end
 
 function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
     xs = vcat(range(minimum(ecdf), maximum(ecdf), N))
     ys = 1 .- ecdf.(xs)
 
-    ECCDF(λ, L, length(ecdf.sorted_values), SortedDict(Dict(x=>y for (x,y) in zip(xs, ys))))
+    ECCDF(λ, L, length(ecdf.sorted_values), xs, ys)
+end
+
+function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::Float64, L::Int64, N::Int64, n::Int64)
+    ts = [calc_ts(ds_pvalues, CountsMap(L, λ)) for _ in 1:N]
+    e_cdf = ecdf(ts)
+    xs = range(minimum(ts), maximum(ts), n)
+    ys = 1.0 .- e_cdf.(xs)
+
+    return ECCDF(λ, L, N, xs, ys)
+end
+
+function (eccdf::ECCDF)(x::Float64)
+    idx = findfirst(eccdf.ts .>= x)
+    y = idx != nothing ? eccdf.pvalues[idx] : eccdf.pvalues[end]
+    return y > 0.0 ? y : 1/eccdf.N
+end
+
+function write_eccdf(path::AbstractString, x::ECCDF)
+    h5open(joinpath(path, "eccdf_lambda=$(x.λ).h5"), "w") do h5f
+        write(h5f, "λ", x.λ)
+        write(h5f, "L", x.L)
+        write(h5f, "N", x.N)
+        write(h5f, "ts", x.ts)
+        write(h5f, "pvalues", x.pvalues)
+    end
+end
+
+function read_eccdf(fname::AbstractString)
+    f = h5open(fname, "r")
+    eccdf = ECCDF(read(f["λ"]), read(f["L"]), read(f["N"]), read(f["ts"]), read(f["pvalues"]))
+    close(f)
+
+    return eccdf
 end
 
 function ECCDF(λ::Float64, L::Int64, N, n)
@@ -26,17 +71,15 @@ function ECCDF(λ::Float64, L::Int64, N, n)
     return eccdf
 end
 
-function (eccdf::ECCDF)(x::Float64)
-    ks = collect(keys(eccdf.eccdf))
-    idx = searchsortedlast(ks, x)
-    idx == 0 && return 1.0
-    closest_x = ks[idx]
-    y = eccdf.eccdf[closest_x]
-    return y > 0.0 ? y : 1/eccdf.N
-end
 
 function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
+
+    return eccdf(ts)
+end
+
+function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
+    ts = calc_ts(d, x)
 
     return eccdf(ts)
 end
@@ -48,6 +91,16 @@ function compatibility(ecdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{Count
     else
         return length(e_cdf.sorted_values)
     end
+end
+
+function calc_ts(d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
+    ρs = get_thresholds(x)
+    summed_ts = 0.0
+    for ρ in ρs
+        summed_ts += -log10(compatibility(d[ρ], ρ, x))
+    end
+
+    return summed_ts
 end
 
 function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}

@@ -11,7 +11,8 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     λ = 10.0
     L = 15
     xs = 1:10
-    eccdf = ECCDF(λ, L, ecdf(xs), 10)
+    N = 10
+    eccdf = ECCDF(λ, L, ecdf(xs), N)
 
     @test 0.9 ≈ eccdf(1.0)
     @test 0.8 ≈ eccdf(2.0)
@@ -24,6 +25,14 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test 0.1 ≈ eccdf(9.0)
     @test 0.1 ≈ eccdf(10.0)
     @test 0.1 ≈ eccdf(11.0)
+
+    write_eccdf(".", eccdf)
+    eccdf_loaded = read_eccdf("eccdf_lambda=10.0.h5")
+    @test λ == eccdf_loaded.λ
+    @test L == eccdf_loaded.L
+    @test N == eccdf_loaded.N
+    @test xs == eccdf_loaded.ts
+    @test eccdf.pvalues == eccdf_loaded.pvalues
 
     L = 5
     λ = 10.0
@@ -40,5 +49,6 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test !isnan(maximum(p2σ(mink_map)))
     mink_map = MinkowskiMap(counts_map, dd, e_cdf)
     @test !isnan(maximum(p2σ(mink_map)))
+
 
 end
