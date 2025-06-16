@@ -327,3 +327,32 @@ function get_sign(λ, ρ, x::Matrix{Int64})
     p_black, _ = gamma_inc(ρ, λ)
     return p_black * length(x) > sum(BWMap(x, ρ).pixels) ? -1.0 : 1.0
 end
+
+function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions::AbstractString, path_ecdf::AbstractString)
+    m, n = size(x.pixels)
+    l = floor(Int, L/2)
+    αs = ones(n - 2l, m - 2l)
+    signs = ones(n - 2l, m - 2l)
+    ρs_global = minimum(x.pixels)+1:maximum(x.pixels)+10
+    λs = unique(b.pixels)
+    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+
+    for (λ, idxs) in idx_dict
+        if λ == 0.0
+            continue
+        end
+        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path_distributions, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in ρs_global)
+        eccdf = read_eccdf(joinpath(path_ecdf, "eccdf_lambda=$(λ).h5"))
+        for idx in idxs
+            i, j = idx.I
+            if l < i <= m-l && l < j <= n-l
+                local_counts = x[i-l:i+l, j-l:j+l]
+                local_background = b[i-l:i+l, j-l:j+l]
+                correction!(local_counts, local_background, b[i, j])
+                pvalue = compatibility(eccdf, pvalues_ρ, local_counts)
+                αs[i-l, j-l] = pvalue
+            end
+        end
+    end
+    return MinkowskiMap(αs)
+end

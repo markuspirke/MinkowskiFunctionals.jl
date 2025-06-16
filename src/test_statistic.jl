@@ -84,10 +84,10 @@ function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Fl
     return eccdf(ts)
 end
 
-function compatibility(ecdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
+function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
-    if 1.0 - ecdf(ts) > 0.0
-        return 1.0 - ecdf(ts)
+    if 1.0 - e_cdf(ts) > 0.0
+        return 1.0 - e_cdf(ts)
     else
         return length(e_cdf.sorted_values)
     end
