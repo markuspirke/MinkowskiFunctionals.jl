@@ -74,8 +74,19 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     pvalues = read_pvalues("lambda=10.0_rho=10.dat")
     @test pvalues == d.pvalues
     rm("lambda=10.0_rho=10.dat")
+    d_pvalues = Dict(d.pvalues)
 
+    x = [
+    15  12   8  12  20;
+    16   8   8  12   6;
+    12   8  16  10  12;
+    12  10  13  14   7;
+    16   9  16   8  13
+    ]
+    x_counts_map = CountsMap(x)
 
+    @test 0.15485799310649023 ≈ compatibility(d_pvalues, 10, x)
+    @test 0.15485799310649023 ≈ compatibility(d_pvalues, 10, x_counts_map)
 
 
 

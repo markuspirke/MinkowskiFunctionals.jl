@@ -173,11 +173,6 @@ function Distributions.pdf(d::MinkowskiDistribution)
     return collect(values(d.p))
 end
 
-function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
-    bw_map = BWMap(x, ρ)
-    f = MinkowskiFunctional(bw_map)
-    return d[f]
-end
 
 function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
     if d.pvalues |> ismissing
@@ -201,11 +196,6 @@ function compatibility(d::MinkowskiDistribution, x::Matrix{Int64})
     return compatibility(d, f)
 end
 
-
-
-DataStructures.Accumulator{MinkowskiFunctional, Float64}
-
-# compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional) = d.α[f]
 
 function marginalize(P::MinkowskiDistribution, fields)
     old_fields = (:A, :P, :χ)
@@ -344,4 +334,14 @@ end
 function read_pvalues(fname::AbstractString)
     xs = reinterpret(MinkowskiFunctionalX, read(fname))
     return Dict(MinkowskiFunctional(x.A, x.P, x.χ) => x.p for x in xs)
+end
+
+function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
+    bw_map = BWMap(x, ρ)
+    f = MinkowskiFunctional(bw_map)
+    return d[f]
+end
+
+function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::CountsMap)
+    compatibility(d, ρ, x.pixels)
 end
