@@ -355,5 +355,5 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
             end
         end
     end
-    return MinkowskiMap(αs)
+    return MinkowskiMap(αs .* signs)
 end
