@@ -351,6 +351,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
                 correction!(local_counts, local_background, b[i, j])
                 pvalue = compatibility(eccdf, pvalues_ρ, local_counts)
                 αs[i-l, j-l] = pvalue
+                signs[i-l, j-l] = sum(local_counts) > sum(local_background) ? 1.0 : -1.0
             end
         end
     end
