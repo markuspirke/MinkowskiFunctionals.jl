@@ -84,6 +84,7 @@ function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Fl
     return eccdf(ts)
 end
 
+
 function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
     if 1.0 - e_cdf(ts) > 0.0
@@ -172,7 +173,7 @@ function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf
     Threads.@threads for j in l+1:m-l
         for i in l+1:n-l
             local_counts = x[i-l:i+l, j-l:j+l]
-            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
+            pvalue = compatibility(eccdf, mink_ds, local_counts)
             αs[i-l, j-l] = pvalue
             signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
         end

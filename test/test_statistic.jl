@@ -38,7 +38,10 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     λ = 10.0
     d = Dict(1 => AreaDistribution(L^2, λ, 1))
     dd = DefaultDict(0, d)
-    ts = [calc_ts!(dd, CountsMap(L, λ)) for _ in 1:100]
+    for ρ in 2:100
+        dd[ρ] = AreaDistribution(L^2, λ, ρ)
+    end
+    ts = [calc_ts(dd, CountsMap(L, λ)) for _ in 1:100]
     e_cdf = ecdf(ts)
     eccdf = ECCDF(λ, L, e_cdf, 100)
     # @test 1 - e_cdf(1.0) ≈ eccdf(1.0) these will not work, as e_cdf has no equidistance bins, think about what to do here...
@@ -49,6 +52,12 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test !isnan(maximum(p2σ(mink_map)))
     mink_map = MinkowskiMap(counts_map, dd, e_cdf)
     @test !isnan(maximum(p2σ(mink_map)))
+
+    counts_map = CountsMap(5, 30.0)
+    mink_map = MinkowskiMap(counts_map, dd, e_cdf)
+    @test 0.01 ≈ mink_map[1, 1]
+    mink_map = MinkowskiMap(counts_map, dd, eccdf)
+    @test 0.01 ≈ mink_map[1, 1]
 
 
 end
