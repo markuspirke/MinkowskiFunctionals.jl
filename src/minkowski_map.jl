@@ -246,44 +246,6 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     return MinkowskiMap(αs .* signs)
 end
 
-"""
-    function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool}})
-
-This calculates a MinkowskiMap for a background gives for example from a FoV background modell
-based on only the Area functional. A different kernel can be given as a mask.
-"""
-function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool}})
-    m, n = size(x.pixels)
-    m_mask, n_mask = size(mask)
-    N = sum(mask)
-    l = floor(Int, m_mask/2)
-    αs = ones(n - 2l, m - 2l)
-    signs = ones(n - 2l, m - 2l)
-    for j in l+1:m-l
-        for i in l+1:n-l
-            if b.pixels[i, j] == 0.0
-                continue
-            end
-            local_counts = x[i-l:i+l, j-l:j+l]
-            local_background = b[i-l:i+l, j-l:j+l]
-            correction!(local_counts, local_background, b[i, j])
-            ρs = get_thresholds(local_counts)
-            l_ρ = length(ρs)
-            αs_ρ = ones(l_ρ)
-            signs_ρ = zeros(l_ρ)
-            Threads.@threads for k in 1:length(ρs)
-                mink_distribution = AreaDistribution(N, b.pixels[i, j], ρs[k])
-                αs_ρ[k] = compatibility(mink_distribution, local_counts .* mask)
-                signs_ρ[k] = get_sign(mink_distribution, local_counts)
-            end
-            idx = argmin(αs_ρ)
-            α = αs_ρ[idx]
-            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
-            @inbounds signs[i-l, j-l] = signs_ρ[idx]
-        end
-    end
-    return MinkowskiMap(αs .* signs)
-end
 
 function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractString)
     m, n = size(x.pixels)
@@ -353,6 +315,45 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
                 αs[i-l, j-l] = pvalue
                 signs[i-l, j-l] = sum(local_counts) > sum(local_background) ? 1.0 : -1.0
             end
+        end
+    end
+    return MinkowskiMap(αs)
+end
+
+"""
+    function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool}})
+
+This calculates a MinkowskiMap for a background gives for example from a FoV background modell
+based on only the Area functional. A different kernel can be given as a mask.
+"""
+function MinkowskiMap(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool}})
+    m, n = size(x.pixels)
+    m_mask, n_mask = size(mask)
+    N = sum(mask)
+    l = floor(Int, m_mask/2)
+    αs = ones(n - 2l, m - 2l)
+    signs = ones(n - 2l, m - 2l)
+    for j in l+1:m-l
+        for i in l+1:n-l
+            if b.pixels[i, j] == 0.0
+                continue
+            end
+            local_counts = x[i-l:i+l, j-l:j+l]
+            local_background = b[i-l:i+l, j-l:j+l]
+            correction!(local_counts, local_background, b[i, j])
+            ρs = get_thresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            Threads.@threads for k in 1:length(ρs)
+                mink_distribution = AreaDistribution(N, b.pixels[i, j], ρs[k])
+                αs_ρ[k] = compatibility(mink_distribution, local_counts .* mask)
+                signs_ρ[k] = get_sign(mink_distribution, local_counts)
+            end
+            idx = argmin(αs_ρ)
+            α = αs_ρ[idx]
+            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l, j-l] = signs_ρ[idx]
         end
     end
     return MinkowskiMap(αs .* signs)

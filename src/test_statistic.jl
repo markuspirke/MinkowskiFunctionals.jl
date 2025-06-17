@@ -89,7 +89,7 @@ function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{Coun
     if 1.0 - e_cdf(ts) > 0.0
         return 1.0 - e_cdf(ts)
     else
-        return length(e_cdf.sorted_values)
+        return 1/length(e_cdf.sorted_values)
     end
 end
 
