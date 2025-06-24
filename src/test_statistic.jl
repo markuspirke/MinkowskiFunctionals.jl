@@ -180,3 +180,21 @@ function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf
     end
     MinkowskiMap(αs .* signs)
 end
+
+function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, eccdf::ECCDF)
+    λ = eccdf.λ
+    m, n = size(x)
+    L = eccdf.L
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            local_counts = x[i-l:i+l, j-l:j+l]
+            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
+            αs[i-l, j-l] = pvalue
+            signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
+        end
+    end
+    MinkowskiMap(αs .* signs)
+end
