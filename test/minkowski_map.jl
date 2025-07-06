@@ -21,12 +21,12 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     L = 3
     b = Background(ones(3, 3))
 
-    p_black1 = 1 - cdf(Poisson(1.0), 2-1) # prob of black pixel for rho = 1
+    p_black1 = 1 - cdf(Poisson(1.0), 1-1) # prob of black pixel for rho = 1
     D1 = Binomial(L^2, p_black1) # binomial
-    A1 = 2 # for treshold of 1
+    A1 = 9 # for treshold of 1
     p_A1 = pdf(D1, A1) # probability for A = 9
     pvalue1 = sum(pdf(D1)[pdf(D1) .<= p_A1]) # sum of probabilities less likeley than A=9
-    s1 = -1.0
+    s1 = 1.0
 
     p_black2 = 1 - cdf(Poisson(1.0), 3-1)
     D2 = Binomial(L^2, p_black2)
@@ -38,7 +38,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     pvalues = [pvalue1, pvalue2]
     signs = [s1, s2]
     idx = argmin(pvalues) # 1 is smaller
-    pvalue = 1 - (1 - pvalues[idx])^2 #
+    pvalue = 1 - (1 - pvalues[idx])^3 #
     pvalue *= signs[idx]
 
     @test pvalue ≈ MinkowskiMap(counts_map, b, L).pixels[1, 1]
@@ -49,24 +49,31 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     r = floor(Int64, L/2)
     mask = [sqrt((i - r - 1)^2 + (j - r - 1)^2) <= r for i in 1:L, j in 1:L]
 
-    p_black1 = 1 - cdf(Poisson(1.0), 2-1) # prob of black pixel for rho = 1
+    p_black1 = 1 - cdf(Poisson(1.0), 1-1) # prob of black pixel for rho = 1
     D1 = Binomial(5, p_black1) # binomial
-    A1 = 2 # for treshold of 1
+    A1 = 5 # for treshold of 1
     p_A1 = pdf(D1, A1) # probability for A = 9
     pvalue1 = sum(pdf(D1)[pdf(D1) .<= p_A1]) # sum of probabilities less likeley than A=9
     s1 = 1.0
 
-    p_black2 = 1 - cdf(Poisson(1.0), 3-1)
+    p_black2 = 1 - cdf(Poisson(1.0), 2-1)
     D2 = Binomial(5, p_black2)
-    A2 = 1 # for treshold of 1
+    A2 = 2 # for treshold of 1
     p_A2 = pdf(D2, A2) # probability for A = 9
     pvalue2 = sum(pdf(D2)[pdf(D2) .<= p_A2]) # sum of probabilities less likeley than A=9
     s2 = 1.0 # less pixels black than expected
 
-    pvalues = [pvalue1, pvalue2]
-    signs = [s1, s2]
+    p_black3 = 1 - cdf(Poisson(1.0), 3-1)
+    D3 = Binomial(5, p_black3)
+    A3 = 1 # for treshold of 1
+    p_A3 = pdf(D3, A3) # probability for A = 9
+    pvalue3 = sum(pdf(D3)[pdf(D3) .<= p_A3]) # sum of probabilities less likeley than A=9
+    s3 = 1.0 # less pixels black than expected
+
+    pvalues = [pvalue1, pvalue2, pvalue3]
+    signs = [s1, s2, s3]
     idx = argmin(pvalues) # 1 is smaller
-    pvalue = 1 - (1 - pvalues[idx])^2 #
+    pvalue = 1 - (1 - pvalues[idx])^3 #
     pvalue *= signs[idx]
     # pvalue = minimum([pvalue1, pvalue2]) # 1 is smaller
     # pvalue = 1 - (1 - pvalue)^2 #
@@ -74,21 +81,26 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test pvalue ≈ MinkowskiMap(counts_map, b, mask).pixels[1, 1]
 
     Ω = DensityOfStates(3)
-    D1 = MinkowskiDistribution(Ω, 1.0, 2)
-    f1 = MinkowskiFunctional(2, 6, 1)
+    D1 = MinkowskiDistribution(Ω, 1.0, 1)
+    f1 = MinkowskiFunctional(9, 12, 1)
     p1 = pdf(D1, f1)
     pvalue1 = sum(pdf(D1)[pdf(D1) .<= p1])
 
-    D2 = MinkowskiDistribution(Ω, 1.0, 3)
-    f2 = MinkowskiFunctional(1, 4, 1)
+    D2 = MinkowskiDistribution(Ω, 1.0, 2)
+    f2 = MinkowskiFunctional(2, 6, 1)
     p2 = pdf(D2, f2)
     pvalue2 = sum(pdf(D2)[pdf(D2) .<= p2])
 
+    D3 = MinkowskiDistribution(Ω, 1.0, 3)
+    f3 = MinkowskiFunctional(1, 4, 1)
+    p3 = pdf(D3, f3)
+    pvalue3 = sum(pdf(D3)[pdf(D3) .<= p3])
 
-    pvalues = [pvalue1, pvalue2]
-    signs = [s1, s2]
+
+    pvalues = [pvalue1, pvalue2, pvalue3]
+    signs = [s1, s2, s3]
     idx = argmin(pvalues) # 1 is smaller
-    pvalue = 1 - (1 - pvalues[idx])^2 #
+    pvalue = 1 - (1 - pvalues[idx])^3 #
     pvalue *= signs[idx]
 
     @test pvalue ≈ MinkowskiMap(counts_map, b, Ω).pixels[1, 1]
@@ -105,6 +117,13 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     mink_map = MinkowskiMap(counts_map, background, Ω)
 
     Ω = DensityOfStates(3)
+
+    x = CountsMap([3 3 3; 3 3 3; 3 3 3])
+    b = 3.0
+    mink_map = MinkowskiMap(x, b, Ω)
+    @test 0.04598107195886336 ≈ mink_map[1, 1]
+
+
     counts_map = CountsMap(3, 2.0)
     background = Background(2*ones(3, 3))
     background_float = 2.0
@@ -194,4 +213,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     end
 
     @test 0.3 > abs(mean(as) - mean(bs))
+
+
+
 end

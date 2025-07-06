@@ -73,7 +73,7 @@ Calculates which thresholds are used. Essentially returns a range from small bin
 to largest bin counts.
 """
 function get_thresholds(x::Matrix{Int64})
-    ρ_min = minimum(x) + 1# > 0 ? minimum(x.pixels) : 1
+    ρ_min = minimum(x)  > 0 ? minimum(x) : 1
     ρ_max = maximum(x) > 0 ? maximum(x) : 1
     return ρ_min:ρ_max
 end
@@ -246,7 +246,13 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     return MinkowskiMap(αs .* signs)
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractString)
 
+Calculates a Minkowski Map for a given CountsMap and Background with a Kernelsize L.
+The pvalues are loaded form the directory given as path. Need to be stored as
+lambda=λ_rho=ρ.dat.
+"""
 function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractString)
     m, n = size(x.pixels)
     l = floor(Int, L/2)

@@ -43,6 +43,11 @@ function (eccdf::ECCDF)(x::Float64)
     return y > 0.0 ? y : 1/eccdf.N
 end
 
+"""
+    function write_eccdf(path::AbstractString, x::ECCDF)
+
+Stores the ECCDF as a h5 file.
+"""
 function write_eccdf(path::AbstractString, x::ECCDF)
     h5open(joinpath(path, "eccdf_lambda=$(x.λ).h5"), "w") do h5f
         write(h5f, "λ", x.λ)
@@ -53,6 +58,11 @@ function write_eccdf(path::AbstractString, x::ECCDF)
     end
 end
 
+"""
+    function read_eccdf(fname::AbstractString)
+
+Reads the ECCDF from a h5 file.
+"""
 function read_eccdf(fname::AbstractString)
     f = h5open(fname, "r")
     eccdf = ECCDF(read(f["λ"]), read(f["L"]), read(f["N"]), read(f["ts"]), read(f["pvalues"]))
