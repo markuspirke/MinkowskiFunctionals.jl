@@ -253,20 +253,19 @@ Calculates a Minkowski Map for a given CountsMap and Background with a Kernelsiz
 The pvalues are loaded form the directory given as path. Need to be stored as
 lambda=λ_rho=ρ.dat.
 """
-function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path::AbstractString)
+function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions::AbstractString)
     m, n = size(x.pixels)
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    ρs_global = minimum(x.pixels)+1:maximum(x.pixels)+10
-    λs = unique(b.pixels)
-    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+
+    idx_dict = get_λ_idxs(b, m, n, L)
+    remove_boundary_idxs!(idx_dict, m, n, L)
+    d_ρ_λ = get_ρ_λ(x, idx_dict, L)
 
     for (λ, idxs) in idx_dict
-        if λ == 0.0
-            continue
-        end
-        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in ρs_global)
+        λ == 0.0 && continue
+        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path_distributions, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in d_ρ_λ[λ])
         for idx in idxs
             i, j = idx.I
             if l < i <= m-l && l < j <= n-l
@@ -296,20 +295,26 @@ function get_sign(λ, ρ, x::Matrix{Int64})
     return p_black * length(x) > sum(BWMap(x, ρ).pixels) ? -1.0 : 1.0
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions::AbstractString, path_ecdf::AbstractString)
+
+Calculates a Minkowki map for a given counts map and background for a kernel size of L.
+This needs a directory where precalculated p-values are stored and also the ECCDF.
+"""
 function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions::AbstractString, path_ecdf::AbstractString)
     m, n = size(x.pixels)
     l = floor(Int, L/2)
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
-    ρs_global = minimum(x.pixels)+1:maximum(x.pixels)+10
-    λs = unique(b.pixels)
-    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+
+    idx_dict = get_λ_idxs(b, m, n, L)
+    remove_boundary_idxs!(idx_dict, m, n, L)
+    d_ρ_λ = get_ρ_λ(x, idx_dict)
+
 
     for (λ, idxs) in idx_dict
-        if λ == 0.0
-            continue
-        end
-        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path_distributions, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in ρs_global)
+        λ == 0.0 && continue
+        pvalues_ρ = Dict(ρ => read_pvalues(joinpath(path_distributions, "lambda=$(λ)_rho=$(ρ).dat")) for ρ in d_ρ_λ[λ])
         eccdf = read_eccdf(joinpath(path_ecdf, "eccdf_lambda=$(λ).h5"))
         for idx in idxs
             i, j = idx.I
@@ -324,6 +329,61 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
         end
     end
     return MinkowskiMap(αs)
+end
+
+
+"""
+
+This removes unnessary λ and indices from the calculation which sit on the boundaries,
+which are nonetheless not used.
+"""
+function remove_boundary_idxs!(d::Dict{Float64, Vector{CartesianIndex{2}}}, m::Int64, n::Int64, L::Int64)
+    for (λ, idxs) in d
+        d[λ] = remove_boundary_idxs(idxs, m, n,  L)
+    end
+end
+
+"""
+
+This removes unnessary λ and indices from the calculation which sit on the boundaries,
+which are nonetheless not used.
+"""
+function remove_boundary_idxs(idxs::Vector{CartesianIndex{2}}, m::Int64, n::Int64, L::Int64)
+    l = floor(Int, L/2)
+    [idx for idx in idxs if l < idx.I[1] <= m-l && l < idx.I[2] <= n-l]
+end
+
+"""
+
+This determines which λ we need to take into account when constructing the sky map.
+"""
+function get_λ_idxs(b::Background, m::Int64, n::Int64, L::Int64)
+    l = floor(Int, L/2)
+    λs = unique(b.pixels[1+l:m-l, 1+l:n-l]) # here we need to remove the boundaries
+    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+end
+
+"""
+
+This determines which thresholds we need to take into account when constructing the sky map.
+"""
+function get_ρ_λ(x::CountsMap, idx_dict::Dict{Float64, Vector{CartesianIndex{2}}}, L)
+    l = floor(Int, L/2)
+    λ_ρ_dict = Dict{Float64, UnitRange{Int64}}()
+    for (λ, idxs) in idx_dict
+        λ == 0.0 && continue
+        ρmax = 1
+        ρmin =  Inf
+        for idx in idxs
+            i, j = idx.I
+            local_counts = x[i-l:i+l, j-l:j+l]
+            maximum(local_counts) > ρmax ? ρmax = maximum(local_counts) : continue
+            minimum(local_counts) < ρmin ? ρmin = minimum(local_counts) : continue
+        end
+        λ_ρ_dict[λ] = max(1, ρmin-5):ρmax+5
+    end
+
+    λ_ρ_dict
 end
 
 """
