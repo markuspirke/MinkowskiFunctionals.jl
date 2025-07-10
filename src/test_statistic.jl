@@ -2,6 +2,12 @@ using StatsBase
 using DataStructures, Distributions
 using MinkowskiFunctionals
 
+"""
+    struct ECCDF
+
+Datatype which stores the empirical cumulative distibution function
+for summed p-values at different thresholds.
+"""
 struct ECCDF
     λ::Float64
     L::Int64
@@ -70,6 +76,7 @@ function read_eccdf(fname::AbstractString)
 
     return eccdf
 end
+
 
 function ECCDF(λ::Float64, L::Int64, N, n)
     d = Dict(1 => AreaDistribution(L^2, λ, 1))
@@ -191,6 +198,12 @@ function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf
     MinkowskiMap(αs .* signs)
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, eccdf::ECCDF)
+
+Calculates a minkowski map for a homogenous background, given a Dictionary of p-values and
+a ECCDF.
+"""
 function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, eccdf::ECCDF)
     λ = eccdf.λ
     m, n = size(x)
