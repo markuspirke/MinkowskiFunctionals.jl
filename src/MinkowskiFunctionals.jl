@@ -17,13 +17,13 @@ using SpecialFunctions
 export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
     PoissonMinkowskiDistributions, DensityOfStates,
     MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution, append!, window_size,
-    write_pvalues, read_pvalues,
+    write_pvalues, write_necessary_pvalues, read_pvalues,
     add_functionals!, compatibility,
     save_density_of_states, load_density_of_states, convert_counter,
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
-    MinkowskiMap, minkowski_map_A, correct_trials, get_thresholds,
+    MinkowskiMap, minkowski_map_A, correct_trials, get_thresholds, get_λs,
     λ_lima, significance_lima, lima_map, lima_map_roundkernel,
-    ECCDF, write_eccdf, read_eccdf, calc_ts!, calc_ts, update_distributions!
+    ECCDF, write_eccdf, read_eccdf, calc_ts!, calc_ts, update_distributions!, find_max_threshold
 
 
 include("types.jl")

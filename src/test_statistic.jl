@@ -16,10 +16,10 @@ struct ECCDF
     pvalues::Vector{Float64}
 end
 
-function find_max_threshold(λ)
+function find_max_threshold(λ, L)
     ρ = 1
     p = 1.0
-    while p > 1e-12
+    while p > 1e-12 / L^2
         p, _ = gamma_inc(ρ, λ)
         ρ += 1
     end
@@ -62,6 +62,12 @@ function write_eccdf(path::AbstractString, x::ECCDF)
         write(h5f, "ts", x.ts)
         write(h5f, "pvalues", x.pvalues)
     end
+end
+# is this needed?
+function _check_eccdf_exists(path, λ)
+    existing_pvalues = readdir(path)
+    x = "eccdf_lambda=$(λ).ht"
+    return x in existing_pvalues
 end
 
 """

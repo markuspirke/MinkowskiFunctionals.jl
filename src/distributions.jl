@@ -325,15 +325,70 @@ struct MinkowskiFunctionalX
     p::Float64
 end
 
+
+"""
+
+This stores a Minkowski distribution as a binary file at the given path with
+a filename that is like lambda=λ_rho=ρ.dat.
+"""
 function write_pvalues(path::AbstractString, d::MinkowskiDistribution)
     xs = d.pvalues
     ys = [MinkowskiFunctionalX(k.A, k.P, k.χ, v) for (k, v) in xs]
     write(joinpath(path, "lambda=$(d.λ)_rho=$(d.ρ).dat"), ys)
 end
 
+"""
+
+This stores all needed Minkowski distribution to sample the eccdf,
+as a binary file at the given path with a filename that is like lambda=λ_rho=ρ.dat.
+"""
+function write_necessary_pvalues(path::AbstractString, b::Background, Ω::DensityOfStates)
+    L = Ω.n
+    λs = get_λs(b, 3)
+    ρs = [find_max_threshold(λ, 3) for λ in λs]
+    for (λ, ρmax) in zip(λs, ρs)
+        for ρ in 1:ρmax
+            _check_exists(path, λ, ρ) && continue
+            write_pvalues(path, MinkowskiDistribution(Ω, λ, ρ))
+        end
+    end
+end
+
+"""
+
+This stores all needed Minkowski distribution to calculate a sky map,
+as a binary file at the given path with a filename that is like lambda=λ_rho=ρ.dat.
+"""
+function write_necessary_pvalues(path::AbstractString, b::Background, x::CountsMap, Ω::DensityOfStates)
+    L = Ω.n
+    m, n = size(x)
+    d_λ_idxs = MinkowskiFunctionals.get_λ_idxs(b, L)
+    MinkowskiFunctionals.remove_boundary_idxs!(d_λ_idxs, m, n, L)
+    d_ρ_λ = MinkowskiFunctionals.get_ρ_λ(x, d_λ_idxs, L)
+    for (λ, ρs) in d_ρ_λ
+        for ρ in ρs
+            # @show λ, ρ, path
+            _check_exists(path, λ, ρ) && continue
+            write_pvalues(path, MinkowskiDistribution(Ω, λ, ρ))
+        end
+    end
+end
+
+function _check_exists(path, λ, ρ)
+    existing_pvalues = readdir(path)
+    x = "lambda=$(λ)_rho=$(ρ).dat"
+    return x in existing_pvalues
+end
+
 function read_pvalues(fname::AbstractString)
     xs = reinterpret(MinkowskiFunctionalX, read(fname))
     return Dict(MinkowskiFunctional(x.A, x.P, x.χ) => x.p for x in xs)
+end
+
+function read_pvalues(path::AbstractString, λ)
+    fnames = readdir(path, join=true)
+    filter!(x -> occursin("lambda=$(λ)_rho", x), fnames)
+    Dict(parse(Int64, match(r"rho=(\d+)\.", fname).captures[1]) => read_pvalues(fname) for fname in fnames)
 end
 
 function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
@@ -344,4 +399,18 @@ end
 
 function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::CountsMap)
     compatibility(d, ρ, x.pixels)
+end
+
+function sample_minkowski_distribution(b::Background, N::Int64)
+    d_counter = Dict(ρ => Accumulator{MinkowskiFunctional, Int64}() for ρ in 1:100)
+    for _ in 1:N
+        counts_map = CountsMap(b)
+        ρs = get_thresholds(counts_map)
+        for ρ in ρs
+            bw_map = BWMap(counts_map, ρ)
+            f = MinkowskiFunctional(bw_map)
+            d_counter[ρ][f] += 1
+        end
+    end
+    d_counter
 end

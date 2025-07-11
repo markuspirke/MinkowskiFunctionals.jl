@@ -228,7 +228,8 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
                    4  3  4  2  3])
     m, n = size(x)
     L = 3
-    d_λ_idxs = MinkowskiFunctionals.get_λ_idxs(b, m, n, L)
+    @test Set([2.0, 3.0, 4.0]) == Set(get_λs(b, L))
+    d_λ_idxs = MinkowskiFunctionals.get_λ_idxs(b, L)
     @test CartesianIndex(1, 1) ∈ d_λ_idxs[2.0]
     @test CartesianIndex(1, 2) ∈ d_λ_idxs[2.0]
     @test CartesianIndex(4, 3) ∈ d_λ_idxs[2.0]
@@ -241,17 +242,25 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test CartesianIndex(5, 4) ∉ d_λ_idxs[2.0]
 
     d_ρ_λ = MinkowskiFunctionals.get_ρ_λ(x, d_λ_idxs, L)
-    @test d_ρ_λ[2.0] == 1:9
-    @test d_ρ_λ[3.0] == 1:9
-    @test d_ρ_λ[4.0] == 1:9
+    @test d_ρ_λ[2.0] == 1:14
+    @test d_ρ_λ[3.0] == 1:14
+    @test d_ρ_λ[4.0] == 1:14
 
     Ω = DensityOfStates(3)
-    for (λ, ρs) in d_ρ_λ
-        for ρ in ρs
-            write_pvalues(SAMPLES_DIR, MinkowskiDistribution(Ω, λ, ρ))
-        end
-    end
-
+    write_necessary_pvalues(SAMPLES_DIR, b, x, Ω)
     mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR)
     @test sum(iszero.(mink_map.pixels)) == 0
+
+    λs = MinkowskiFunctionals.get_λs(b, L)
+    write_necessary_pvalues(SAMPLES_DIR, b, Ω)
+    for λ in λs
+        write_eccdf(SAMPLES_DIR, ECCDF(read_pvalues(SAMPLES_DIR, λ), λ, 3, 100, 10))
+    end
+
+    mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR, SAMPLES_DIR)
+    @test sum(iszero.(mink_map.pixels)) == 0
+
+
+
+
 end

@@ -259,7 +259,7 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
 
-    idx_dict = get_λ_idxs(b, m, n, L)
+    idx_dict = get_λ_idxs(b, L)
     remove_boundary_idxs!(idx_dict, m, n, L)
     d_ρ_λ = get_ρ_λ(x, idx_dict, L)
 
@@ -307,9 +307,9 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
     αs = ones(n - 2l, m - 2l)
     signs = ones(n - 2l, m - 2l)
 
-    idx_dict = get_λ_idxs(b, m, n, L)
+    idx_dict = get_λ_idxs(b, L)
     remove_boundary_idxs!(idx_dict, m, n, L)
-    d_ρ_λ = get_ρ_λ(x, idx_dict)
+    d_ρ_λ = get_ρ_λ(x, idx_dict, L)
 
 
     for (λ, idxs) in idx_dict
@@ -357,10 +357,19 @@ end
 
 This determines which λ we need to take into account when constructing the sky map.
 """
-function get_λ_idxs(b::Background, m::Int64, n::Int64, L::Int64)
+function get_λ_idxs(b::Background, L::Int64)
+    λs = get_λs(b, L)
+    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
+end
+
+"""
+
+This determines which λ we need to take into account when constructing the sky map.
+"""
+function get_λs(b::Background, L)
+    m, n = size(b)
     l = floor(Int, L/2)
     λs = unique(b.pixels[1+l:m-l, 1+l:n-l]) # here we need to remove the boundaries
-    idx_dict = Dict(λ => findall(x -> x == λ, b.pixels) for λ in λs)
 end
 
 """
@@ -380,7 +389,7 @@ function get_ρ_λ(x::CountsMap, idx_dict::Dict{Float64, Vector{CartesianIndex{2
             maximum(local_counts) > ρmax ? ρmax = maximum(local_counts) : continue
             minimum(local_counts) < ρmin ? ρmin = minimum(local_counts) : continue
         end
-        λ_ρ_dict[λ] = max(1, ρmin-5):ρmax+5
+        λ_ρ_dict[λ] = max(1, ρmin-5):ρmax+10
     end
 
     λ_ρ_dict
