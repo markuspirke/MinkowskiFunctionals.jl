@@ -8,7 +8,12 @@ function λ_lima(Non, Noff, a=1)
 end
 
 function significance_lima_exact(Non, λ)
-    return sqrt(2) * sqrt(Non * log(Non/λ) + λ - Non)
+    x = Non * log(Non/λ) + λ - Non
+    if x < 0.0
+        return 0.0
+    else
+        return sqrt(2) * sqrt(x)
+    end
 end
 
 

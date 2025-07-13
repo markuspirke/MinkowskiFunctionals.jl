@@ -16,4 +16,5 @@ using MinkowskiFunctionals
     @test zeros(7, 7) ≈ lima_map(counts_map, background, L)
     mask = ones(3, 3) .== 1.0
     @test zeros(7, 7) ≈ lima_map(counts_map, background, mask)
+    @test 0.0 ≈ MinkowskiFunctionals.significance_lima_exact(3, 2.999999999999)
 end
