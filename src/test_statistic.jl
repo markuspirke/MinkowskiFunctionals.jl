@@ -43,10 +43,13 @@ function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::
     return ECCDF(λ, L, N, xs, ys)
 end
 
+"""
+
+Finds the nearest pvalue within the ecdf.
+"""
 function (eccdf::ECCDF)(x::Float64)
-    idx = findfirst(eccdf.ts .>= x)
-    y = idx != nothing ? eccdf.pvalues[idx] : eccdf.pvalues[end]
-    return y > 0.0 ? y : 1/eccdf.N
+    idx = binary_search(eccdf.ts, x)
+    return idx < length(eccdf.ts) ? eccdf.pvalues[idx] : 1/eccdf.N
 end
 
 """
