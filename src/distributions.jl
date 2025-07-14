@@ -344,8 +344,8 @@ as a binary file at the given path with a filename that is like lambda=λ_rho=ρ
 """
 function write_necessary_pvalues(path::AbstractString, b::Background, Ω::DensityOfStates)
     L = Ω.n
-    λs = get_λs(b, 3)
-    ρs = [find_max_threshold(λ, 3) for λ in λs]
+    λs = get_λs(b, L)
+    ρs = [find_max_threshold(λ, L) for λ in λs]
     for (λ, ρmax) in zip(λs, ρs)
         for ρ in 1:ρmax
             _check_exists(path, λ, ρ) && continue
