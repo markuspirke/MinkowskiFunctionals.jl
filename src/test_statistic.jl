@@ -35,7 +35,10 @@ function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
 end
 
 function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::Float64, L::Int64, N::Int64, n::Int64)
-    ts = [calc_ts(ds_pvalues, CountsMap(L, λ)) for _ in 1:N]
+    ts = zeros(N)
+    Threads.@threads for i in 1:N
+        ts[i] = calc_ts(ds_pvalues, CountsMap(L, λ))
+    end
     e_cdf = ecdf(ts)
     xs = range(minimum(ts), maximum(ts), n)
     ys = 1.0 .- e_cdf.(xs)
