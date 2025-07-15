@@ -73,8 +73,9 @@ Calculates which thresholds are used. Essentially returns a range from small bin
 to largest bin counts.
 """
 function get_thresholds(x::Matrix{Int64})
-    ρ_min = minimum(x)  > 0 ? minimum(x) : 1
-    ρ_max = maximum(x) > 0 ? maximum(x) : 1
+    min, max = extrema(x)
+    ρ_min = min  > 0 ? min : 1
+    ρ_max = max > 0 ? max : 1
     return ρ_min:ρ_max
 end
 
