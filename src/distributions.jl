@@ -354,6 +354,14 @@ function write_necessary_pvalues(path::AbstractString, b::Background, Ω::Densit
     end
 end
 
+function write_necessary_pvalues(path::AbstractString, λ::Float64, Ω::DensityOfStates)
+    L = Ω.n
+    ρmax = find_max_threshold(λ, L)
+    for ρ in 1:ρmax
+        _check_exists(path, λ, ρ) && continue
+        write_pvalues(path, MinkowskiDistribution(Ω, λ, ρ))
+    end
+end
 """
 
 This stores all needed Minkowski distribution to calculate a sky map,
