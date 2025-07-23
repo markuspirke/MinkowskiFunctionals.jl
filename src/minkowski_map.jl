@@ -383,12 +383,12 @@ function get_ρ_λ(x::CountsMap, idx_dict::Dict{Float64, Vector{CartesianIndex{2
     for (λ, idxs) in idx_dict
         λ == 0.0 && continue
         ρmax = 1
-        ρmin =  Inf
+        ρmin = Inf
         for idx in idxs
             i, j = idx.I
             local_counts = x[i-l:i+l, j-l:j+l]
-            maximum(local_counts) > ρmax ? ρmax = maximum(local_counts) : continue
-            minimum(local_counts) < ρmin ? ρmin = minimum(local_counts) : continue
+            if maximum(local_counts) > ρmax;  ρmax = maximum(local_counts) end
+            if minimum(local_counts) < ρmin; ρmin = minimum(local_counts) end
         end
         λ_ρ_dict[λ] = max(1, ρmin-5):ρmax+10
     end
