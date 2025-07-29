@@ -13,11 +13,21 @@ struct AreaDistribution <: AbstractMinkowskiDistribution
     pvalues::Union{Accumulator, Missing}
 end
 
+"""
+    function window_size(d::AreaDistribution)
+
+Returns the system size of the given distribution.
+"""
 function window_size(d::AreaDistribution)
     return Int(sqrt(d.n))
 end
 
+"""
+    function AreaDistribution(n, λ, ρ; pvalues=true)
 
+This calculates the Area distribution for a given system size, background and threshold.
+By default is also precalculates the pvalues.
+"""
 function AreaDistribution(n, λ, ρ; pvalues=true)
     p, _ = gamma_inc(ρ, λ)
     d_A = Binomial(n, p)
@@ -46,24 +56,47 @@ function Base.show(io::IO, P::AreaDistribution)
     print(io, "Area distribution for n=$(P.n), λ=$(P.λ) and ρ=$(P.ρ).")
 end
 
+"""
+    function Distributions.pdf(d::AreaDistribution, f::MinkowskiFunctional)
+
+Returns the probability for a given functional with respect to the Area distribution.
+"""
 function Distributions.pdf(d::AreaDistribution, f::MinkowskiFunctional)
     return pdf(d.p, f.A)
 end
 
+"""
+    function Distributions.pdf(d::AreaDistribution, f::Int64)
+
+Returns the probaility for a given area value.
+"""
 function Distributions.pdf(d::AreaDistribution, f::Int64)
     return pdf(d.p, f)
 end
 
+"""
+    function Distributions.pdf(d::AreaDistribution)
+
+Returns the probability density function as a 1D vector.
+"""
 function Distributions.pdf(d::AreaDistribution)
     return pdf(d.p)
 end
 
+"""
+    function compatibility(d::AreaDistribution, f::MinkowskiFunctional)
+
+Returns the p-values for a given functional.
+"""
 function compatibility(d::AreaDistribution, f::MinkowskiFunctional)
-    p = pdf(d, f)
-    ps = pdf(d)
-    return sum(ps[ps .<= p])
+    return compatibility(d, f.A)
 end
 
+"""
+    function compatibility(d::AreaDistribution, f::Int64)
+
+Return the p-value for a given area A.
+"""
 function compatibility(d::AreaDistribution, f::Int64)
     if d.pvalues |> ismissing
         p = pdf(d, f)
@@ -101,6 +134,12 @@ struct MinkowskiDistribution <: AbstractMinkowskiDistribution
     pvalues::Union{Accumulator, Missing}
 end
 
+
+"""
+    function window_size(d::MinkowskiDistribution)
+
+Returns the system size of the given distribution.
+"""
 function window_size(d::MinkowskiDistribution)
     return d.n
 end
@@ -160,20 +199,32 @@ function modified_cumsum!(A, B)
     end
 end
 
-
 function Base.show(io::IO, P::MinkowskiDistribution)
     print(io, "Minkowski distribution for n=$(P.n), λ=$(P.λ) and ρ=$(P.ρ).")
 end
+"""
+    function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
 
+Given a Minkowski distribution, this evaluates the probabilty of the given Minkowksi functional.
+"""
 function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
     return d.p[f]
 end
 
+"""
+    function Distributions.pdf(d::MinkowskiDistribution)
+
+Given a Minkowski distribution, this return the PDF as a single one dimensional vector.
+"""
 function Distributions.pdf(d::MinkowskiDistribution)
     return collect(values(d.p))
 end
 
+"""
+    function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
 
+This returns the p-value for a given Minkowski functional.
+"""
 function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
     if d.pvalues |> ismissing
         p = pdf(d, f)
@@ -183,20 +234,32 @@ function compatibility(d::MinkowskiDistribution, f::MinkowskiFunctional)
         return d.pvalues[f]
     end
 end
+"""
+    function compatibility(d::MinkowskiDistribution, x::CountsMap)
 
+This return the p-value of a given counts map at the threshold of the Minkowski distribution.
+"""
 function compatibility(d::MinkowskiDistribution, x::CountsMap)
-    bw_map = BWMap(x, d.ρ)
-    f = MinkowskiFunctional(bw_map)
-    return compatibility(d, f)
+    compatibility(d, x.pixels)
 end
 
+"""
+    function compatibility(d::MinkowskiDistribution, x::CountsMap)
+
+This return the p-value of a given counts map at the threshold of the Minkowski distribution.
+"""
 function compatibility(d::MinkowskiDistribution, x::Matrix{Int64})
     bw_map = BWMap(x, d.ρ)
     f = MinkowskiFunctional(bw_map)
     return compatibility(d, f)
 end
 
+"""
+    function marginalize(P::MinkowskiDistribution, fields)
 
+This takes the 3 dimensional Minkowski Distribution and marginalizes along all given fields.
+It returns again a Minkowski distribution.
+"""
 function marginalize(P::MinkowskiDistribution, fields)
     old_fields = (:A, :P, :χ)
     new_fields = Symbol[]
@@ -382,33 +445,65 @@ function write_necessary_pvalues(path::AbstractString, b::Background, x::CountsM
     end
 end
 
+"""
+    function _check_exists(path, λ, ρ)
+
+Helper function which checks whether p values are already calculated and stored at the
+given path, λ and threshold.
+"""
 function _check_exists(path, λ, ρ)
     existing_pvalues = readdir(path)
     x = "lambda=$(λ)_rho=$(ρ).dat"
     return x in existing_pvalues
 end
 
+"""
+    function read_pvalues(fname::AbstractString)
+
+This reads stored p-values and return a dictory, which can be index by functionals.
+"""
 function read_pvalues(fname::AbstractString)
     xs = reinterpret(MinkowskiFunctionalX, read(fname))
     return Dict(MinkowskiFunctional(x.A, x.P, x.χ) => x.p for x in xs)
 end
 
+"""
+    function read_pvalues(path::AbstractString, λ)
+
+This reads all p-values for a given λ withing the same directory.
+"""
 function read_pvalues(path::AbstractString, λ)
     fnames = readdir(path, join=true)
     filter!(x -> occursin("lambda=$(λ)_rho", x), fnames)
     Dict(parse(Int64, match(r"rho=(\d+)\.", fname).captures[1]) => read_pvalues(fname) for fname in fnames)
 end
 
+"""
+    function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
+
+This calculates the p-value for a given counts map (as a matrix).
+"""
 function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::Matrix{Int64})
     bw_map = BWMap(x, ρ)
     f = MinkowskiFunctional(bw_map)
     return d[f]
 end
 
+"""
+    function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::CountsMap)
+
+This calculates the p-value for a given counts map at the given threshold.
+"""
 function compatibility(d::Dict{MinkowskiFunctional, Float64}, ρ::Int64, x::CountsMap)
     compatibility(d, ρ, x.pixels)
 end
 
+
+"""
+    function sample_minkowski_distribution(b::Background, N::Int64)
+
+This is preliminary. Was used to sample Functionals for a given non-uniform background.
+"""
 function sample_minkowski_distribution(b::Background, N::Int64)
     d_counter = Dict(ρ => Accumulator{MinkowskiFunctional, Int64}() for ρ in 1:100)
     for _ in 1:N
