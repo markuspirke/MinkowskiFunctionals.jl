@@ -66,11 +66,11 @@ function Distributions.pdf(d::AreaDistribution, f::MinkowskiFunctional)
 end
 
 """
-    function Distributions.pdf(d::AreaDistribution, f::Int64)
+    function Distributions.pdf(d::AreaDistribution, f::T) where {T<:Integer}
 
 Returns the probaility for a given area value.
 """
-function Distributions.pdf(d::AreaDistribution, f::Int64)
+function Distributions.pdf(d::AreaDistribution, f::T) where {T<:Integer}
     return pdf(d.p, f)
 end
 
@@ -93,11 +93,11 @@ function compatibility(d::AreaDistribution, f::MinkowskiFunctional)
 end
 
 """
-    function compatibility(d::AreaDistribution, f::Int64)
+    function compatibility(d::AreaDistribution, f::T) where {T<:Integer}
 
 Return the p-value for a given area A.
 """
-function compatibility(d::AreaDistribution, f::Int64)
+function compatibility(d::AreaDistribution, f::T) where {T<:Integer}
     if d.pvalues |> ismissing
         p = pdf(d, f)
         ps = pdf(d)
