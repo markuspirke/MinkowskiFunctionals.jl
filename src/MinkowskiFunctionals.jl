@@ -12,7 +12,6 @@ using StatsBase
 using HDF5
 using ProgressMeter
 using Dates
-using SearchSortedNearest
 using SpecialFunctions
 
 export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
