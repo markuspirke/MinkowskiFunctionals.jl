@@ -29,9 +29,18 @@ result = MinkowskiFunctional(img)
 ```
 ### Minkowski skymaps from count maps
 ```julia
-counts_map = CountsMap(32, 10.0)
+counts_map = CountsMap(100, 10.0)
 background = 10.0
-dos = DensityOfStates(5)
+dos = DensityOfStates(3)
 mink_map = MinkowskiMap(counts_map, background, dos)
 ```
 For window sizes larger than 5 the density of states has to loaded [https://github.com/michael-klatt/minkmaps](here) like this `dos = DensityOfStates(path/to/structure_11x11)`.
+
+We can also make a plot of the Minkoski skymap, by loading **CairoMakie**, which then automatically loads the extensions.
+```julia
+using CairoMakie
+fig, ax, hm = heatmap(mink_map)
+current_figure()
+```
+![Minkowski skymap](assets/minkowski-skymap.pdf)
+
