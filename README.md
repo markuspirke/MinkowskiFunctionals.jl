@@ -42,5 +42,5 @@ using CairoMakie
 fig, ax, hm = heatmap(mink_map)
 current_figure()
 ```
-![Minkowski skymap](assets/minkowski-skymap.pdf)
+![Minkowski skymap](assets/minkowski-skymap.png)
 
