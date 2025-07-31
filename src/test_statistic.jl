@@ -16,17 +16,11 @@ struct ECCDF
     pvalues::Vector{Float64}
 end
 
-function find_max_threshold(λ, L)
-    ρ = 1
-    p = 1.0
-    while p > 1e-12 / L^2
-        p, _ = gamma_inc(ρ, λ)
-        ρ += 1
-    end
+"""
+    function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
 
-    return ρ
-end
-
+Given an already calculated ecdf (from stats base) return the ECCDF.
+"""
 function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
     xs = vcat(range(minimum(ecdf), maximum(ecdf), N))
     ys = 1 .- ecdf.(xs)
@@ -34,6 +28,11 @@ function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
     ECCDF(λ, L, length(ecdf.sorted_values), xs, ys)
 end
 
+"""
+    function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::Float64, L::Int64, N::Int64, n::Int64)
+
+Calculates the empiriacl cumlative distribution function, given a dictory of a dictionary of functionals.
+"""
 function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::Float64, L::Int64, N::Int64, n::Int64)
     ts = zeros(N)
     Threads.@threads for i in 1:N
@@ -47,6 +46,7 @@ function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::
 end
 
 """
+    function (eccdf::ECCDF)(x::Float64)
 
 Finds the nearest pvalue within the ecdf.
 """
@@ -55,6 +55,23 @@ function (eccdf::ECCDF)(x::Float64)
     return idx < length(eccdf.ts) ? eccdf.pvalues[idx] : 1/eccdf.N
 end
 
+
+"""
+    function find_max_threshold(λ, L)
+
+Find the maximum threshold that is needed to sufficiently calculate the ecdf for
+an background with mean λ.
+"""
+function find_max_threshold(λ, L)
+    ρ = 1
+    p = 1.0
+    while p > 1e-12 / L^2
+        p, _ = gamma_inc(ρ, λ)
+        ρ += 1
+    end
+
+    return ρ
+end
 """
     function write_eccdf(path::AbstractString, x::ECCDF)
 
@@ -89,17 +106,26 @@ function read_eccdf(fname::AbstractString)
     return eccdf
 end
 
+"""
+    function ECCDF(λ::Float64, L::Int64, N, n)
 
+Calculates the ecdf for a system size of L at an average background λ with the Area functional.
+"""
 function ECCDF(λ::Float64, L::Int64, N, n)
-    d = Dict(1 => AreaDistribution(L^2, λ, 1))
-    dd = DefaultDict(0, d)
-    ts = [calc_ts!(dd, CountsMap(L, λ)) for _ in 1:N]
+    ρmax = find_max_threshold(λ, L)
+    d = Dict(ρ => AreaDistribution(L^2, λ, ρ) for ρ in 1:ρmax)
+    ts = [calc_ts(d, CountsMap(L, λ)) for _ in 1:N]
     e_cdf = ecdf(ts)
     eccdf = ECCDF(λ, L, e_cdf, n)
 
     return eccdf
 end
 
+function compatibility(eccdf::ECCDF, d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+    ts = calc_ts(d, x)
+
+    return eccdf(ts)
+end
 
 function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
@@ -133,6 +159,16 @@ function calc_ts(d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{Co
     return summed_ts
 end
 
+function calc_ts(d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+    ρs = get_thresholds(x)
+    summed_ts = 0.0
+    for ρ in ρs
+        summed_ts += -log10(compatibility(d[ρ], x))
+    end
+
+    return summed_ts
+end
+
 function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ρs = get_thresholds(x)
     summed_ts = 0.0
@@ -142,25 +178,6 @@ function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{In
 
     return summed_ts
 end
-
-function calc_ts!(dd::DefaultDict{Int64, AreaDistribution, Int64}, x::Union{CountsMap, Matrix{Int64}})
-    b = dd[first(eachindex(dd))].λ
-    L, _ = size(x)
-    ρs = get_thresholds(x)
-    for ρ in ρs
-        kys = keys(dd)
-        if !(ρ in kys)
-            dd[ρ] = AreaDistribution(L^2, b, ρ)
-        end
-    end
-    summed_ts = 0.0
-    for ρ in ρs
-        summed_ts += -log10(compatibility(dd[ρ], x))
-    end
-
-    return summed_ts
-end
-
 
 function update_distributions!(dd::DefaultDict{Int64, AreaDistribution, Int64}, x::CountsMap)
     b = dd[first(eachindex(dd))].λ
@@ -220,6 +237,34 @@ function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctiona
     λ = eccdf.λ
     m, n = size(x)
     L = eccdf.L
+    l = floor(Int, L/2)
+    αs = zeros(n - 2l, m - 2l)
+    signs = zeros(n - 2l, m - 2l)
+    Threads.@threads for j in l+1:m-l
+        for i in l+1:n-l
+            local_counts = x[i-l:i+l, j-l:j+l]
+            pvalue = compatibility(eccdf, mink_ds, CountsMap(local_counts))
+            αs[i-l, j-l] = pvalue
+            signs[i-l, j-l] = mean(local_counts) > λ ? 1.0 : -1.0
+        end
+    end
+    MinkowskiMap(αs .* signs)
+end
+
+
+
+"""
+    function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, eccdf::ECCDF)
+
+Calculates a minkowski map for a homogenous background, given a Dictionary of p-values and
+a ECCDF.
+"""
+function MinkowskiMap(x::CountsMap, eccdf::ECCDF)
+    ρs = get_thresholds(x)
+    L = eccdf.L
+    λ = eccdf.λ
+    mink_ds = Dict(ρ => AreaDistribution(L^2, λ, ρ) for ρ in ρs)
+    m, n = size(x)
     l = floor(Int, L/2)
     αs = zeros(n - 2l, m - 2l)
     signs = zeros(n - 2l, m - 2l)

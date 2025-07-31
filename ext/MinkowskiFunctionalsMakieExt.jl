@@ -33,8 +33,8 @@ end
 
 function CairoMakie.hist(mink_map::MinkowskiMap; kwargs...)
     fig = Figure()
-    ax = Axis(fig[1, 1])
-    h = hist(p2σ(mink_map)[1:end]; kwargs...)
+    ax = Axis(fig[1, 1], xlabel="σ")
+    h = hist!(ax, p2σ(mink_map)[1:end]; kwargs...)
 
     fig, ax, h
 end

@@ -44,3 +44,25 @@ current_figure()
 ```
 ![Minkowski skymap](assets/minkowski-skymap.png)
 
+### Using an empirical cumulative distribution over all thresholds
+Instead of using the minimum p-value for different thresholds and then correcting for trials, we can sample a empirical cumulative distribution function of the sum of p-values over all thresholds. We use this to create our Minkowski skymaps. Here we sample the distribution only with the Area functional.
+``` julia
+using MinkowskiFunctionals
+using CairoMakie
+using Distributions
+
+L = 3
+background = 10.0
+counts_map = CountsMap(100, background)
+ecdf = ECCDF(background, L, 1_000_000, 1_000_000)
+mink_map = MinkowskiMap(counts_map, ecdf)
+
+xs = range(-5, 5, 1_000)
+ys = pdf(Normal(0, 1), xs) 
+fig, ax, h = hist(mink_map, normalization=:pdf, bins=30,
+                color=:cornflowerblue, strokecolor=:black, strokewidth=1)
+lines!(ax, xs, ys, color=(:gray, 0.7), linewidth=3, label="Unit Gaussian")
+axislegend()
+current_figure()
+```
+![Minkowski skymap](assets/mink_map_hist_ecdf.png)
