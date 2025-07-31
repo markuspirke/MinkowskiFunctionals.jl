@@ -2,6 +2,7 @@ module MinkowskiFunctionals
 
 using Base.Threads
 import Base: getindex, +, append!, size, show, minimum, maximum, abs
+import Statistics: mean
 using Distributions
 using DataStructures
 using PaddedViews

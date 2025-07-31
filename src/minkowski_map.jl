@@ -22,6 +22,9 @@ get_sign(d::AreaDistribution, x::Matrix{Int64}) = d.p.p*d.p.n > sum(BWMap(x, d.�
 get_sign(d::MinkowskiDistribution, x::CountsMap) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 get_sign(d::MinkowskiDistribution, x::Matrix{Int64}) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 
+mean(xs::Vector{MinkowskiMap}) = MinkowskiMap(mean(getfield.(xs, :pixels)))
+
+
 """
     function correct_trials(x::Float64, n::Int64)
 

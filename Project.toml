@@ -17,6 +17,7 @@ SearchSortedNearest = "e8f3a9d7-1e19-435f-864b-2435d14e4e17"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -32,6 +33,7 @@ Random = "^1.10"
 SearchSortedNearest = "0.1.1"
 SpecialFunctions = "2.5.1"
 StaticArrays = "^1.9"
+Statistics = "1.11.1"
 StatsBase = "^0.34"
 julia = "^1.10"
 
@@ -40,9 +42,3 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
 test = ["Test"]
-
-[extensions]
-MinkowskiFunctionalsMakieExt = "CairoMakie"
-
-[weakdeps]
-CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
