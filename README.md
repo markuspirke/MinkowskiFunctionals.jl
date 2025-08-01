@@ -35,6 +35,11 @@ dos = DensityOfStates(3)
 mink_map = MinkowskiMap(counts_map, background, dos)
 ```
 For window sizes larger than 5 the density of states has to loaded [https://github.com/michael-klatt/minkmaps](here) like this `dos = DensityOfStates(path/to/structure_11x11)`.
+There also exists a helper function which downloads this github repository and then reads to density of states.
+``` julia
+download(".", DensityOfStates)
+dos = DensityOfStates("minkmaps-master/", 15)
+```
 
 We can also make a plot of the Minkoski skymap, by loading **CairoMakie**, which then automatically loads the extensions.
 ```julia
