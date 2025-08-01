@@ -1,3 +1,11 @@
+const path2dos = joinpath(@__DIR__, "..", "density-of-states")
+
+"""
+    struct DensityOfStates
+
+Datatype for the density of states of Minkowski functionals
+for a given system size n.
+"""
 struct DensityOfStates
     n::Int
     data::Accumulator{MinkowskiFunctional, Number}
@@ -8,7 +16,10 @@ end
 
 This calculates the Density of States for a given system size n.
 """
-function DensityOfStates(n)
+function DensityOfStates(n; use_stored=false)
+    if use_stored && n>4
+        return DensityOfStates(joinpath(path2dos, "structure_$(n)x$(n)"))
+    end
     counts = Accumulator{MinkowskiFunctional, Int64}()
     n_microstates = 2^(n^2)
 
@@ -143,4 +154,29 @@ function DensityOfStates(dirname::AbstractString)
     else
         return DensityOfStates(n, convert_counter(BigInt, counterX))
     end
+end
+
+"""
+    function DensityOfStates(path2minkmaps::AbstractString, n::Int)
+
+Calculates the density of states from the stored density of states
+inside Michael Klatts repository.
+"""
+function DensityOfStates(path2minkmaps::AbstractString, n::Int)
+    path2dos = joinpath(path2minkmaps, "parameters", "structure_$(n)x$(n)")
+
+    DensityOfStates(path2dos)
+end
+
+
+"""
+    function Base.download(path::AbstractString, T::Type{DensityOfStates})
+
+This downloads a GitHub repository from Michael Klatt, in which the density of states
+is saved in the directory parameters.
+"""
+function Base.download(path::AbstractString, T::Type{DensityOfStates})
+    url = "https://github.com/michael-klatt/minkmaps/archive/refs/heads/master.zip"
+    download(url, joinpath(path, "repo.zip"))
+    run(`unzip repo.zip`)
 end
