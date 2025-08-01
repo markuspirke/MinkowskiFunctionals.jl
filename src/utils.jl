@@ -21,7 +21,11 @@ function σ2p(σ)
 	1 - 2 * (cdf(Normal(0, 1), σ) - 0.5)
 end
 
+"""
+    function binary_search(xs::Vector{T}, x::T) where T
 
+A self implemented binary search.
+"""
 function binary_search(xs::Vector{T}, x::T) where T
     left = 1
     right = length(xs)

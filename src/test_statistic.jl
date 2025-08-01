@@ -1,7 +1,3 @@
-using StatsBase
-using DataStructures, Distributions
-using MinkowskiFunctionals
-
 """
     struct ECCDF
 
@@ -48,7 +44,8 @@ end
 """
     function (eccdf::ECCDF)(x::Float64)
 
-Finds the nearest pvalue within the ecdf.
+Finds the nearest pvalue within the ecdf. A self implemented
+binary search algorithm is used, which converges quickly.
 """
 function (eccdf::ECCDF)(x::Float64)
     idx = binary_search(eccdf.ts, x)
@@ -73,17 +70,27 @@ function find_max_threshold(λ, L)
     return ρ
 end
 """
-    function write_eccdf(path::AbstractString, x::ECCDF)
+    function write_eccdf(path::AbstractString, x::ECCDF; all_functionals=true)
 
 Stores the ECCDF as a h5 file.
 """
-function write_eccdf(path::AbstractString, x::ECCDF)
-    h5open(joinpath(path, "eccdf_lambda=$(x.λ).h5"), "w") do h5f
-        write(h5f, "λ", x.λ)
-        write(h5f, "L", x.L)
-        write(h5f, "N", x.N)
-        write(h5f, "ts", x.ts)
-        write(h5f, "pvalues", x.pvalues)
+function write_eccdf(path::AbstractString, x::ECCDF; all_functionals=true)
+    if all_functionals
+        h5open(joinpath(path, "eccdf_lambda=$(x.λ).h5"), "w") do h5f
+            write(h5f, "λ", x.λ)
+            write(h5f, "L", x.L)
+            write(h5f, "N", x.N)
+            write(h5f, "ts", x.ts)
+            write(h5f, "pvalues", x.pvalues)
+        end
+    else
+        h5open(joinpath(path, "eccdf_A_lambda=$(x.λ).h5"), "w") do h5f
+            write(h5f, "λ", x.λ)
+            write(h5f, "L", x.L)
+            write(h5f, "N", x.N)
+            write(h5f, "ts", x.ts)
+            write(h5f, "pvalues", x.pvalues)
+        end
     end
 end
 # is this needed?
@@ -121,18 +128,33 @@ function ECCDF(λ::Float64, L::Int64, N, n)
     return eccdf
 end
 
+"""
+    function compatibility(eccdf::ECCDF, d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+
+Return the p-value for a given counts map or matrix.
+"""
 function compatibility(eccdf::ECCDF, d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ts = calc_ts(d, x)
 
     return eccdf(ts)
 end
 
+"""
+    function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+
+Return the p-value for a given counts map or matrix.
+"""
 function compatibility(eccdf::ECCDF, dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
 
     return eccdf(ts)
 end
 
+"""
+    function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
+
+Return the p-value for a given counts map or matrix.
+"""
 function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
     ts = calc_ts(d, x)
 
@@ -140,6 +162,11 @@ function compatibility(eccdf::ECCDF, d::Dict{Int64, Dict{MinkowskiFunctional, Fl
 end
 
 
+"""
+    function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
+
+Return the p-value for a given counts map or matrix.
+"""
 function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T <: ECDF, S <: AbstractMinkowskiDistribution}
     ts = calc_ts(dd, x)
     if 1.0 - e_cdf(ts) > 0.0
@@ -149,6 +176,11 @@ function compatibility(e_cdf::T, dd::DefaultDict{Int64, S, Int64}, x::Union{Coun
     end
 end
 
+"""
+    function calc_ts(d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
+
+Calculates the test statistic for a given counts map or matrix.
+"""
 function calc_ts(d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{CountsMap, Matrix{Int64}})
     ρs = get_thresholds(x)
     summed_ts = 0.0
@@ -159,6 +191,11 @@ function calc_ts(d::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, x::Union{Co
     return summed_ts
 end
 
+"""
+    function calc_ts(d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+
+Calculates the test statistic for a given counts map or matrix.
+"""
 function calc_ts(d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ρs = get_thresholds(x)
     summed_ts = 0.0
@@ -169,6 +206,11 @@ function calc_ts(d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T
     return summed_ts
 end
 
+"""
+    function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
+
+Calculates the test statistic for a given counts map or matrix.
+"""
 function calc_ts(dd::DefaultDict{Int64, T, Int64}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
     ρs = get_thresholds(x)
     summed_ts = 0.0
@@ -209,6 +251,12 @@ function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, T, Int64}, eccdf
     MinkowskiMap(αs .* signs)
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf::T) where {S<:AbstractMinkowskiDistribution, T<:ECDF}
+
+Calculates a minkowski map for a homogenous background, given a Dictionary of p-values and
+a ECCDF.
+"""
 function MinkowskiMap(x::CountsMap, mink_ds::DefaultDict{Int64, S, Int64}, eccdf::T) where {S<:AbstractMinkowskiDistribution, T<:ECDF}
     λ = mink_ds[first(eachindex(mink_ds))].λ
     m, n = size(x)
@@ -256,7 +304,7 @@ end
 """
     function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, eccdf::ECCDF)
 
-Calculates a minkowski map for a homogenous background, given a Dictionary of p-values and
+Calculates a minkowski map for a homogenous background based on the area functional, given a Dictionary of p-values and
 a ECCDF.
 """
 function MinkowskiMap(x::CountsMap, eccdf::ECCDF)

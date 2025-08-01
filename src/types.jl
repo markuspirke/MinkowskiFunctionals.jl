@@ -12,17 +12,35 @@ Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
 Base.setindex!(x::CountsMap, i, j, k) = setindex!(x.pixels, i, j, k)
 +(x::CountsMap, y::CountsMap) = CountsMap(x.pixels + y.pixels)
 
+"""
+    function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
+
+Randomly samples a counts map of given size x from a Poisson random field at
+an intensity of λ.
+"""
 function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
     m, n = x
     d = Poisson(λ)
     CountsMap(rand(d, m, n))
 end
 
+"""
+    function CountsMap(x::Int64, λ::Float64)
+
+Randomly samples a counts map of given size x times x from a Poisson random field at
+an intensity of λ.
+"""
 function CountsMap(x::Int64, λ::Float64)
     d = Poisson(λ)
     CountsMap(rand(d, x, x))
 end
 
+"""
+    function CountsMap(x::Int64, d::Poisson{Float64})
+
+Randomly samples a counts map of given size x times x from a Poisson random field at
+an intensity of λ.
+"""
 function CountsMap(x::Int64, d::Poisson{Float64})
     CountsMap(rand(d, x, x))
 end
@@ -45,6 +63,11 @@ function Base.show(io::IO, x::IntensityMap)
     end
 end
 
+"""
+    function CountsMap(x::IntensityMap)
+
+Randomly samples a counter map from a given intensity map.
+"""
 function CountsMap(x::IntensityMap)
     m, n = size(x)
     y = zeros(m, n)
@@ -56,26 +79,50 @@ function CountsMap(x::IntensityMap)
     return CountsMap(y)
 end
 
+"""
+    struct BWMap
+
+A data type for a black and white image.
+"""
 struct BWMap
     ρ::Int64
     pixels::Matrix{Bool}
 end
 
+"""
+    function BWMap(x::CountsMap, ρ)
+
+Creates a black and white image from thresholding.
+"""
 function BWMap(x::CountsMap, ρ)
     return BWMap(ρ, x.pixels .>= ρ)
 end
 
+"""
+    function BWMap(x::Matrix{Int64}, ρ)
+
+Creates a black and white image from thresholding.
+"""
 function BWMap(x::Matrix{Int64}, ρ)
     return BWMap(ρ, x .>= ρ)
 end
 
+"""
+    struct Background
+
+Datatype for a background model.
+"""
 struct Background
     pixels::Matrix{Float64}
 end
 
 Base.size(x::Background) = size(x.pixels)
 Base.getindex(x::Background, i, j) = x.pixels[i, j]
+"""
+    function CountsMap(x::Background)
 
+Samples a counts map from a given background model.
+"""
 function CountsMap(x::Background)
     m, n = size(x)
     y = zeros(m, n)
