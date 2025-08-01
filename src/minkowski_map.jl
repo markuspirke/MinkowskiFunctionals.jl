@@ -335,6 +335,44 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64, path_distributions:
     return MinkowskiMap(αs)
 end
 
+"""
+    function MinkowskiMap(x::CountsMap, b::Background, path_ecdf::AbstractString)
+
+Calculates a Minkowki map for a given counts map and background for a kernel size of L.
+This needs a directory where the ECCDF is precalculated. It only uses the Area functional.
+"""
+function MinkowskiMap(x::CountsMap, b::Background, path_ecdf::AbstractString)
+    fnames_ecdf = readdir(path_ecdf, join=true)
+    filter!(x -> occursin("eccdf_A_lambda", x), fnames_ecdf)
+    L = read_eccdf(fnames_ecdf[1]).L
+    m, n = size(x.pixels)
+    l = floor(Int, L/2)
+    αs = ones(n - 2l, m - 2l)
+    signs = ones(n - 2l, m - 2l)
+
+    idx_dict = get_λ_idxs(b, L)
+    remove_boundary_idxs!(idx_dict, m, n, L)
+    d_ρ_λ = get_ρ_λ(x, idx_dict, L)
+
+
+    for (λ, idxs) in idx_dict
+        λ == 0.0 && continue
+        mink_ds = Dict(ρ => AreaDistribution(L^2, λ, ρ) for ρ in d_ρ_λ[λ])
+        eccdf = read_eccdf(joinpath(path_ecdf, "eccdf_A_lambda=$(λ).h5"))
+        for idx in idxs
+            i, j = idx.I
+            if l < i <= m-l && l < j <= n-l
+                local_counts = x[i-l:i+l, j-l:j+l]
+                local_background = b[i-l:i+l, j-l:j+l]
+                correction!(local_counts, local_background, b[i, j])
+                pvalue = compatibility(eccdf, mink_ds, local_counts)
+                αs[i-l, j-l] = pvalue
+                signs[i-l, j-l] = sum(local_counts) > sum(local_background) ? 1.0 : -1.0
+            end
+        end
+    end
+    return MinkowskiMap(αs)
+end
 
 """
 
