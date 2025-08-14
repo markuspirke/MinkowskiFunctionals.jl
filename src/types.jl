@@ -106,6 +106,7 @@ Creates a black and white image from thresholding.
 function BWMap(x::Matrix{Int64}, ρ)
     return BWMap(ρ, x .>= ρ)
 end
+Base.size(x::BWMap) = size(x.pixels)
 
 """
     struct Background

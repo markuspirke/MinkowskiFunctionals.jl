@@ -25,8 +25,9 @@ julia>]
 ```julia
 using MinkowskiFunctionals
 img = rand(Bool, 10, 10)
-result = MinkowskiFunctional(img)
+f = MinkowskiFunctional(img)
 ```
+By using the **CairoMakie** extension we can visualize the Minkowski functionals.
 ### Minkowski skymaps from count maps
 ```julia
 counts_map = CountsMap(100, 10.0)

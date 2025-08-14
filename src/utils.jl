@@ -44,3 +44,65 @@ function binary_search(xs::Vector{T}, x::T) where T
 
     return mid
 end
+
+struct Edge
+    a::Tuple{Int, Int}
+    b::Tuple{Int, Int}
+end
+
+function find_perimeter_edges(img)
+    n, m = size(img)
+    edges = Edge[]
+    for i in 1:n
+        for j in 1:m
+            if img[i, j] == 1
+                if img[i-1, j] == 0
+                    push!(edges, Edge((i-1, j-1), (i-1, j)))
+                end
+                if img[i+1, j] == 0
+                    push!(edges, Edge((i, j-1), (i, j)))
+                end
+                if img[i, j-1] == 0
+                    push!(edges, Edge((i-1, j-1), (i, j-1)))
+                end
+                if img[i, j+1] == 0
+                    push!(edges, Edge((i-1, j), (i, j)))
+                end
+            end
+        end
+    end
+    edges
+end
+
+
+function label_outer_background(img)
+    n, m = size(img)
+    visited = falses(n, m)
+    queue = Tuple{Int,Int}[]
+
+    # Start from boundary white pixels
+    for i in 1:n
+        for j in 1:m
+            if (i in (1, n) || j in (1, m)) && img[i, j] == 0
+                push!(queue, (i, j))
+            end
+        end
+    end
+
+    while !isempty(queue)
+        (ci, cj) = popfirst!(queue)
+        if ci < 1 || ci > n || cj < 1 || cj > m
+            continue
+        end
+        if visited[ci, cj] || img[ci, cj] != 0
+            continue
+        end
+        visited[ci, cj] = true
+        append!(queue, [
+            (ci-1, cj), (ci+1, cj),
+            (ci, cj-1), (ci, cj+1)
+        ])
+    end
+
+    visited .== 0  # true = outer background
+end
