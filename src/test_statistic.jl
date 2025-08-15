@@ -93,6 +93,7 @@ function write_eccdf(path::AbstractString, x::ECCDF; all_functionals=true)
         end
     end
 end
+
 # is this needed?
 function _check_eccdf_exists(path, λ)
     existing_pvalues = readdir(path)
@@ -121,7 +122,10 @@ Calculates the ecdf for a system size of L at an average background λ with the 
 function ECCDF(λ::Float64, L::Int64, N, n)
     ρmax = find_max_threshold(λ, L)
     d = Dict(ρ => AreaDistribution(L^2, λ, ρ) for ρ in 1:ρmax)
-    ts = [calc_ts(d, CountsMap(L, λ)) for _ in 1:N]
+    ts = zeros(N)
+    Threads.@threads for i in 1:N
+        ts[i] = calc_ts(d, CountsMap(L, λ))
+    end
     e_cdf = ecdf(ts)
     eccdf = ECCDF(λ, L, e_cdf, n)
 
