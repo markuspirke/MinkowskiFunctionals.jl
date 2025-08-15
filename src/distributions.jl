@@ -109,14 +109,14 @@ end
 
 function compatibility(d::AreaDistribution, x::CountsMap)
     bw_map = BWMap(x, d.ρ)
-    f = MinkowskiFunctional(bw_map)
-    return compatibility(d, f)
+    A = sum(bw_map.pixels)
+    return compatibility(d, A)
 end
 
 function compatibility(d::AreaDistribution, x::Matrix{Int64})
     bw_map = BWMap(x, d.ρ)
-    f = MinkowskiFunctional(bw_map)
-    return compatibility(d, f)
+    A = sum(bw_map.pixels)
+    return compatibility(d, A)
 end
 
 """
