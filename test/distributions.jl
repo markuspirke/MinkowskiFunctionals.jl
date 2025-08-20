@@ -23,6 +23,12 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test 1.0 ≈ sum(pdf(dA))
     @test mean(dA) ≈ dA.n * dA.p.p
 
+    λs = 10.0*ones(2,2)
+    dA_nonhomogenous = AreaDistribution(λs, ρ)
+    @test 1.0 ≈ sum(pdf(dA_nonhomogenous))
+    @test mean(dA) ≈ mean(dA_nonhomogenous)
+    @test abs(compatibility(dA_nonhomogenous, counts_map)) ≈ 0.1303159919284611
+    @test abs(compatibility(dA_nonhomogenous, counts_map.pixels)) ≈ 0.1303159919284611
 
 
     n, λ, ρ = 3, 10, 10

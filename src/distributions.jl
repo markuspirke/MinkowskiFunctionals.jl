@@ -7,9 +7,10 @@ for a given system size and given λ and ρ.
 """
 struct AreaDistribution <: AbstractMinkowskiDistribution
     n::Int
-    λ::Float64
+    λ::Union{Float64, Vector{Float64}}
     ρ::Int
-    p::Binomial{Float64}
+    p::Union{Binomial{Float64}, PoissonBinomial{Float64, Vector{Float64}}}
+    # p::Binomial{Float64}
     pvalues::Union{Accumulator, Missing}
 end
 
@@ -25,6 +26,7 @@ Returns the system size of the given distribution.
 function window_size(d::AreaDistribution)
     return Int(sqrt(d.n))
 end
+
 
 """
     function AreaDistribution(n, λ, ρ; pvalues=true)
@@ -44,7 +46,37 @@ function AreaDistribution(n::Int, λ::Float64, ρ::Int; pvalues=true)
     end
 end
 
+"""
+    function AreaDistribution(λs::Matrix{Float64}, ρ; pvalues=true)
+
+This calculates the Area distribution for a given, possibly nonhomgenous background and threshold.
+By default is also precalculates the pvalues.
+"""
+function AreaDistribution(λs::Matrix{Float64}, ρ; pvalues=true)
+    ps = [gamma_inc(ρ, λ)[1] for λ in λs[:]]
+    d_A = PoissonBinomial(ps)
+
+    if pvalues
+        d_pvalues = get_pvalues(d_A)
+        return AreaDistribution(length(ps), λs[:], ρ, d_A, d_pvalues)
+    else
+        return AreaDistribution(length(ps), λs[:], ρ, d_A, missing)
+    end
+end
+
 function get_pvalues(d::Binomial{Float64})
+    ks, vs = support(d), pdf(d)
+    idxs = sortperm(vs)
+    ks, vs = ks[idxs], vs[idxs]
+    ps = zeros(length(ks))
+    modified_cumsum!(ps, vs)
+    d_pvalues = Dict(k => p for (k, p) in zip(ks, ps))
+
+    return Accumulator(d_pvalues)
+
+end
+
+function get_pvalues(d::PoissonBinomial{Float64, Vector{Float64}})
     ks, vs = support(d), pdf(d)
     idxs = sortperm(vs)
     ks, vs = ks[idxs], vs[idxs]

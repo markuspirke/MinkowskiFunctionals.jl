@@ -35,6 +35,7 @@ include("density_of_states.jl")
 include("distributions.jl")
 include("sampling.jl")
 include("minkowski_map.jl")
+include("minkowski_map_nonhomogenous.jl")
 include("lima.jl")
 include("test_statistic.jl")
 
