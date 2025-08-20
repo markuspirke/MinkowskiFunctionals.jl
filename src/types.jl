@@ -95,7 +95,7 @@ end
 Creates a black and white image from thresholding.
 """
 function BWMap(x::CountsMap, ρ)
-    return BWMap(ρ, x.pixels .>= ρ)
+    return BWMap(x.pixels, ρ)
 end
 
 """
@@ -104,7 +104,11 @@ end
 Creates a black and white image from thresholding.
 """
 function BWMap(x::Matrix{Int64}, ρ)
-    return BWMap(ρ, x .>= ρ)
+    pixels = Matrix{Bool}(undef, size(x))
+    @inbounds @simd for j in eachindex(x)
+        pixels[j] = x[j] >= ρ
+    end
+    return BWMap(ρ, pixels)
 end
 Base.size(x::BWMap) = size(x.pixels)
 
