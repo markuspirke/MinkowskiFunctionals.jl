@@ -1,6 +1,6 @@
 abstract type AbstractMinkowskiDistribution end
 """
-    struct AreaDistribution
+    struct AreaDistribution <: AbstractMinkowskiDistribution
 
 This defines a datatype which stores the area probability distribution
 for a given system size and given λ and ρ.
@@ -11,6 +11,10 @@ struct AreaDistribution <: AbstractMinkowskiDistribution
     ρ::Int
     p::Binomial{Float64}
     pvalues::Union{Accumulator, Missing}
+end
+
+function Statistics.mean(d::AreaDistribution)
+    return mean(d.p)
 end
 
 """
@@ -28,7 +32,7 @@ end
 This calculates the Area distribution for a given system size, background and threshold.
 By default is also precalculates the pvalues.
 """
-function AreaDistribution(n, λ, ρ; pvalues=true)
+function AreaDistribution(n::Int, λ::Float64, ρ::Int; pvalues=true)
     p, _ = gamma_inc(ρ, λ)
     d_A = Binomial(n, p)
 

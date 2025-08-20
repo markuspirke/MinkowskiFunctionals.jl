@@ -17,8 +17,8 @@ minimum(x::MinkowskiMap) = minimum(x.pixels)
 maximum(x::MinkowskiMap) = minimum(x.pixels)
 abs(x::MinkowskiMap) = minimum(x.pixels)
 
-get_sign(d::AreaDistribution, x::CountsMap) = d.p.p*d.p.n > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
-get_sign(d::AreaDistribution, x::Matrix{Int64}) = d.p.p*d.p.n > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
+get_sign(d::AreaDistribution, x::CountsMap) = mean(d) > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
+get_sign(d::AreaDistribution, x::Matrix{Int64}) = mean(d) > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 get_sign(d::MinkowskiDistribution, x::CountsMap) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 get_sign(d::MinkowskiDistribution, x::Matrix{Int64}) = d.p_black*d.n^2 > sum(BWMap(x, d.ρ).pixels) ? -1.0 : 1.0
 

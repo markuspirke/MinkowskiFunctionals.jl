@@ -11,7 +11,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
 
 
     # TEST AREA DISTRIBUTION
-    n, λ, ρ = 2, 10, 10
+    n, λ, ρ = 2, 10.0, 10
     dA = AreaDistribution(n^2, λ, ρ)
     @test dA.n == 4
     @test dA.p.p ≈ 0.5420702855281477
@@ -21,6 +21,8 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test abs(compatibility(dA, counts_map.pixels)) ≈ 0.1303159919284611
 
     @test 1.0 ≈ sum(pdf(dA))
+    @test mean(dA) ≈ dA.n * dA.p.p
+
 
 
     n, λ, ρ = 3, 10, 10
