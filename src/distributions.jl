@@ -53,7 +53,7 @@ This calculates the Area distribution for a given, possibly nonhomgenous backgro
 By default is also precalculates the pvalues.
 """
 function AreaDistribution(λs::Matrix{Float64}, ρ; pvalues=true)
-    ps = [gamma_inc(ρ, λ)[1] for λ in λs[:]]
+    ps = [gamma_inc(ρ, λ)[1] for λ in λs[:] if λ > 0.0]
     d_A = PoissonBinomial(ps)
 
     if pvalues

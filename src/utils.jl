@@ -106,3 +106,9 @@ function label_outer_background(img)
 
     visited .== 0  # true = outer background
 end
+
+function get_round_kernel(L)
+    l = floor(L/2)
+    cx, cy = ((L+1)/2, (L+1)/2)
+    [ (i - cx)^2 + (j - cy)^2 ≤ l^2 for i in 1:L, j in 1:L ]
+end

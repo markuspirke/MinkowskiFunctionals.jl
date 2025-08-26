@@ -15,7 +15,7 @@ using ProgressMeter
 using Dates
 using SpecialFunctions
 
-export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background,
+export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Background, get_round_kernel,
     PoissonMinkowskiDistributions, DensityOfStates,
     MinkowskiDistribution, pdf, marginalize, reduce_functional, AreaDistribution, append!, window_size,
     write_pvalues, write_necessary_pvalues, read_pvalues,
