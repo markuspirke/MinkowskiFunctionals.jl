@@ -38,7 +38,7 @@ end
 
 This calculates a MinkowskiMap for a background gives for example from a FoV background modell
 based on only the Area functional. """
-function nonhomogeonus_minkowski_map(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool})
+function nonhomogeonus_minkowski_map(x::CountsMap, b::Background, mask::Union{BitMatrix, Matrix{Bool}})
     m, n = size(x.pixels)
     m_mask, n_mask = size(mask)
     l = floor(Int, m_mask/2)
