@@ -9,6 +9,8 @@ using MinkowskiFunctionals
     @test 0.0 ≈ significance_lima(10, 10)
     @test sqrt(-2log((1/2 * 3)^1 * (1/2 * 3/2)^2)) ≈ significance_lima(1, 2)
 
+    @test 1.0 ≈ MinkowskiFunctionals.significance_lima_exact(0.0, 0.5)
+
     counts_map = CountsMap(Int.(ones(9, 9)))
     λ = 1.0
     background = Background(λ * ones(9, 9))

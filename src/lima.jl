@@ -8,6 +8,9 @@ function λ_lima(Non, Noff, a=1)
 end
 
 function significance_lima_exact(Non, λ)
+    if Non == 0.0
+        return sqrt(2) * sqrt(λ)
+    end
     x = Non * log(Non/λ) + λ - Non
     if x < 0.0
         return 0.0
@@ -102,6 +105,58 @@ function lima_map(img::CountsMap, background::Background, mask::Union{BitMatrix,
             b_window = background[i-l:i+l, j-l:j+l] .* mask
             σ = significance_lima_exact.(sum(window), sum(b_window))
             s = sum(window) > sum(b_window) ? 1.0 : -1.0
+            σs[i-l,j-l] = σ * s
+        end
+    end
+    σs
+end
+
+"""
+    function lima_map(img::CountsMap, background::Background, L::Int64, α::Float64)
+
+This takes a counts map an returns a significance map based on the
+formula from the lima paper. It uses an extended region to calculate
+the signifiance of the center pixels by summing up all counts in the region,
+these are the ON counts and as OFF counts the correct λ is used which is
+multiplied by the number of pixels L^2, where L is the window size.
+"""
+function lima_map_α(img::CountsMap, background::Background, L::Int64, α::Float64)
+    m, n = size(img)
+    l = floor(Int, L/2)
+    r = floor(Int, L/2)
+    σs = zeros(n - 2l, m - 2l)
+
+    for j in l+1:m-l
+        for i in l+1:n-l
+            window = img[i-l:i+l, j-l:j+l]# .* round_mask
+            b_window = background[i-l:i+l, j-l:j+l]# .* round_mask
+            σ = significance_lima.(sum(window), sum(b_window), α=α)
+            s = sum(window) > sum(b_window) ? 1.0 : -1.0
+            σs[i-l,j-l] = σ * s
+        end
+    end
+    σs
+end
+
+"""
+    function lima_map(img::CountsMap, background::Matrix{Float64}, L::Int64)
+
+This takes a counts map an returns a significance map based on the
+formula from the lima paper. It uses an extended region to calculate
+the signifiance of the center pixels by summing up all counts in the region,
+these are the ON counts and as OFF counts the correct λ is used which is
+multiplied by the number of pixels L^2, where L is the window size.
+"""
+function lima_map_α(img::CountsMap, background::Float64, L::Int64, α::Float64)
+    m, n = size(img)
+    l = floor(Int, L/2)
+    r = floor(Int, L/2)
+    σs = zeros(n - 2l, m - 2l)
+    for j in l+1:m-l
+        for i in l+1:n-l
+            window = img[i-l:i+l, j-l:j+l]# .* round_mask
+            σ = significance_lima.(sum(window), L^2*b, α=α)
+            s = sum(window) > L^2*background ? 1.0 : -1.0
             σs[i-l,j-l] = σ * s
         end
     end
