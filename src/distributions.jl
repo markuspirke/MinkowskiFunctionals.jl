@@ -248,6 +248,15 @@ function Distributions.pdf(d::MinkowskiDistribution, f::MinkowskiFunctional)
 end
 
 """
+    function Distributions.pdf(d::MinkowskiDistribution, f::NamedTuple)
+
+Given a Minkowski distribution, this evaluates the probabilty of the given Minkowksi functional.
+"""
+function Distributions.pdf(d::MinkowskiDistribution, f::NamedTuple)
+    return d.p[f]
+end
+
+"""
     function Distributions.pdf(d::MinkowskiDistribution)
 
 Given a Minkowski distribution, this return the PDF as a single one dimensional vector.
@@ -323,7 +332,7 @@ function marginalize(P::MinkowskiDistribution, fields)
     end
 
 
-    return MinkowskiDistribution(P.n, P.λ, P.ρ, counter_P, counter_α)
+    return MinkowskiDistribution(P.n, P.p_black, P.λ, P.ρ, counter_P, counter_α)
 end
 
 function reduce_functional(functional::MinkowskiFunctional, fields::T) where T<:Tuple
