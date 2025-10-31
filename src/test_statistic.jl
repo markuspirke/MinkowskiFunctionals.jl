@@ -133,6 +133,24 @@ function ECCDF(λ::Float64, L::Int64, N, n)
 end
 
 """
+    function ECCDF(λ::Background, L::Int64, N, n)
+
+Calculates the ecdf for a system size of L at an average background λ with the Area functional.
+"""
+function ECCDF(λ::Background, L::Int64, N, n)
+    ρmax = find_max_threshold(maximum(λ.pixels), L)
+    d = Dict(ρ => AreaDistribution(λ.pixels, ρ) for ρ in 1:ρmax)
+    ts = zeros(N)
+    Threads.@threads for i in 1:N
+        ts[i] = calc_ts(d, CountsMap( λ))
+    end
+    e_cdf = ecdf(ts)
+    eccdf = ECCDF(1.0, L, e_cdf, n)
+
+    return eccdf
+end
+
+"""
     function compatibility(eccdf::ECCDF, d::Dict{Int64, T}, x::Union{CountsMap, Matrix{Int64}}) where {T<:AbstractMinkowskiDistribution}
 
 Return the p-value for a given counts map or matrix.
