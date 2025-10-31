@@ -12,6 +12,13 @@ Base.getindex(x::CountsMap, i, j) = x.pixels[i, j]
 Base.setindex!(x::CountsMap, i, j, k) = setindex!(x.pixels, i, j, k)
 +(x::CountsMap, y::CountsMap) = CountsMap(x.pixels + y.pixels)
 
+function Base.show(io::IO, x::CountsMap)
+    println(io, "$(size(x)[1]) x $(size(x)[2]) Counts Map:")
+    for row in eachrow(x.pixels)
+        println(io, row)
+    end
+end
+
 """
     function CountsMap(x::Tuple{Int64, Int64}, λ::Float64)
 
@@ -123,6 +130,13 @@ end
 
 Base.size(x::Background) = size(x.pixels)
 Base.getindex(x::Background, i, j) = x.pixels[i, j]
+
+function Base.show(io::IO, x::Background)
+    println(io, "$(size(x)[1]) x $(size(x)[2]) Background:")
+    for row in eachrow(x.pixels)
+        println(io, row)
+    end
+end
 """
     function CountsMap(x::Background)
 
