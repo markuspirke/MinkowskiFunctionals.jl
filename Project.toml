@@ -1,7 +1,7 @@
 name = "MinkowskiFunctionals"
 uuid = "966f3356-8dad-4c1b-950e-472e4a926962"
 authors = ["Markus Pirke"]
-version = "0.15.0"
+version = "0.16.0"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
