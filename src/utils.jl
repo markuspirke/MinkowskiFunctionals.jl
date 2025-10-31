@@ -112,3 +112,8 @@ function get_round_kernel(L)
     cx, cy = ((L+1)/2, (L+1)/2)
     [ (i - cx)^2 + (j - cy)^2 ≤ l^2 for i in 1:L, j in 1:L ]
 end
+
+function probability_black_pixel(λ, ρ)
+    p_black, _ = gamma_inc(ρ, λ)
+    return p_black
+end
