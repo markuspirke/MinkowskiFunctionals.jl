@@ -42,17 +42,26 @@ multiplied by the number of pixels L^2, where L is the window size.
 """
 function lima_map(img::CountsMap, background::Background, L::Int64)
     m, n = size(img)
-    l = floor(Int, L/2)
-    r = floor(Int, L/2)
-    σs = zeros(n - 2l, m - 2l)
 
-    for j in l+1:m-l
-        for i in l+1:n-l
-            window = img[i-l:i+l, j-l:j+l]# .* round_mask
-            b_window = background[i-l:i+l, j-l:j+l]# .* round_mask
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        l = l1+l2
+        σs = zeros(n - l, m - l)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        σs = zeros(n - l, m - l)
+    end 
+
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
+            window = img[i-l1:i+l2, j-l1:j+l2]# .* round_mask
+            b_window = background[i-l1:i+l2, j-l1:j+l2]# .* round_mask
             σ = significance_lima_exact.(sum(window), sum(b_window))
             s = sum(window) > sum(b_window) ? 1.0 : -1.0
-            σs[i-l,j-l] = σ * s
+            σs[i-l1,j-l1] = σ * s
         end
     end
     σs
@@ -69,15 +78,25 @@ multiplied by the number of pixels L^2, where L is the window size.
 """
 function lima_map(img::CountsMap, background::Float64, L::Int64)
     m, n = size(img)
-    l = floor(Int, L/2)
-    r = floor(Int, L/2)
-    σs = zeros(n - 2l, m - 2l)
-    for j in l+1:m-l
-        for i in l+1:n-l
-            window = img[i-l:i+l, j-l:j+l]# .* round_mask
+
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        l = l1+l2
+        σs = zeros(n - l, m - l)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        σs = zeros(n - l, m - l)
+    end 
+
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
+            window = img[i-l1:i+l2, j-l1:j+l2]# .* round_mask
             σ = significance_lima_exact.(sum(window), L^2*background)
             s = sum(window) > L^2*background ? 1.0 : -1.0
-            σs[i-l,j-l] = σ * s
+            σs[i-l1,j-l1] = σ * s
         end
     end
     σs
