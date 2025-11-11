@@ -4,8 +4,8 @@
 Datatype which stores the empirical cumulative distibution function
 for summed p-values at different thresholds.
 """
-struct ECCDF
-    λ::Float64
+struct ECCDF{T<:Union{Float64, Background}}
+    λ::T
     L::Int64
     N::Int64
     ts::Vector{Float64}
@@ -25,6 +25,18 @@ function ECCDF(λ::Float64, L::Int64, ecdf::T, N) where {T <: ECDF}
 end
 
 """
+    function ECCDF(λ::Background, L::Int64, ecdf::T, N) where {T <: ECDF}
+
+Given an already calculated ecdf (from stats base) return the ECCDF.
+"""
+function ECCDF(λ::Background, L::Int64, ecdf::T, N) where {T <: ECDF}
+    xs = vcat(range(minimum(ecdf), maximum(ecdf), N))
+    ys = 1 .- ecdf.(xs)
+
+    ECCDF(λ, L, length(ecdf.sorted_values), xs, ys)
+end
+
+"""
     function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::Float64, L::Int64, N::Int64, n::Int64)
 
 Calculates the empiriacl cumlative distribution function, given a dictory of a dictionary of functionals.
@@ -35,7 +47,7 @@ function ECCDF(ds_pvalues::Dict{Int64, Dict{MinkowskiFunctional, Float64}}, λ::
         ts[i] = calc_ts(ds_pvalues, CountsMap(L, λ))
     end
     e_cdf = ecdf(ts)
-    xs = range(minimum(ts), maximum(ts), n)
+    xs = collect(range(minimum(ts), maximum(ts), n))
     ys = 1.0 .- e_cdf.(xs)
 
     return ECCDF(λ, L, N, xs, ys)
@@ -137,7 +149,8 @@ end
 
 Calculates the ecdf for a system size of L at an average background λ with the Area functional.
 """
-function ECCDF(λ::Background, L::Int64, N, n)
+function ECCDF(λ::Background, N, n)
+    L = size(λ)[1]
     ρmax = find_max_threshold(maximum(λ.pixels), L)
     d = Dict(ρ => AreaDistribution(λ.pixels, ρ) for ρ in 1:ρmax)
     ts = zeros(N)
@@ -145,7 +158,7 @@ function ECCDF(λ::Background, L::Int64, N, n)
         ts[i] = calc_ts(d, CountsMap( λ))
     end
     e_cdf = ecdf(ts)
-    eccdf = ECCDF(1.0, L, e_cdf, n)
+    eccdf = ECCDF(λ, L, e_cdf, n)
 
     return eccdf
 end
@@ -347,4 +360,24 @@ function MinkowskiMap(x::CountsMap, eccdf::ECCDF)
         end
     end
     MinkowskiMap(αs .* signs)
+end
+
+
+"""
+    function MinkowskiMap(x::CountsMap, eccdf::ECCDF{Background})
+
+Calculates a minkowski map for a homogenous background based on the area functional, given a Dictionary of p-values and
+a ECCDF.
+"""
+function MinkowskiMap(x::CountsMap, eccdf::ECCDF{Background})
+    ρs = get_thresholds(x)
+    L = eccdf.L
+    λ = eccdf.λ
+    mink_ds = Dict(ρ => AreaDistribution(λ, ρ) for ρ in ρs)
+    m, n = size(x)
+    l = floor(Int, L/2)
+    pvalue = compatibility(eccdf, mink_ds, x)
+    α = pvalue
+    s = 1.0 #mean(x.pixels) > λ ? 1.0 : -1.0
+    return s * α
 end
