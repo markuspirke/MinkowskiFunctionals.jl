@@ -64,6 +64,10 @@ function AreaDistribution(λs::Matrix{Float64}, ρ; pvalues=true)
     end
 end
 
+function AreaDistribution(λs::Background, ρ; pvalues=true)
+    AreaDistribution(λs.pixels, ρ; pvalues=pvalues)
+end
+
 function get_pvalues(d::Binomial{Float64})
     ks, vs = support(d), pdf(d)
     idxs = sortperm(vs)
