@@ -267,16 +267,25 @@ based on only the Area functional.
 """
 function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
     m, n = size(x.pixels)
-    l = floor(Int, L/2)
-    αs = ones(n - 2l, m - 2l)
-    signs = ones(n - 2l, m - 2l)
-    for j in l+1:m-l
-        for i in l+1:n-l
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        αs = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end 
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
             if b.pixels[i, j] == 0.0
                 continue
             end
-            local_counts = x[i-l:i+l, j-l:j+l]
-            local_background = b[i-l:i+l, j-l:j+l]
+            local_counts = x[i-l1:i+l2, j-l1:j+l2]
+            local_background = b[i-l1:i+l2, j-l1:j+l2]
             correction!(local_counts, local_background, b[i, j])
             ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
@@ -289,8 +298,8 @@ function MinkowskiMap(x::CountsMap, b::Background, L::Int64)
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
-            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
-            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+            @inbounds αs[i-l1, j-l1] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
         end
     end
     return MinkowskiMap(αs .* signs)
