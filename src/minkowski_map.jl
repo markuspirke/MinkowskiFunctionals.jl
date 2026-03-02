@@ -112,7 +112,7 @@ end
 This calculates a MinkowskiMap for a fixed and constant background
 based on the information by all functionals.
 """
-function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates)
+function MinkowskiMap(x::CountsMap, b::Float64, Ω::DensityOfStates) # does not work with even kernel sizes
     m, n = size(x)
     ρs = get_thresholds(x.pixels)
     mink_ds = Dict(ρ=>MinkowskiDistribution(Ω, b, ρ) for ρ in ρs)
@@ -143,22 +143,31 @@ function MinkowskiMap(x::CountsMap, mink_ds::Dict{Int64, T}) where {T<:AbstractM
     ρs = get_thresholds(x)
     l_ρ = length(ρs)
     L = window_size(mink_ds[first(eachindex(mink_ds))])
-    l = floor(Int, L/2)
-    αs = zeros(n - 2l, m - 2l)
-    signs = zeros(n - 2l, m - 2l)
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        αs = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end
 
-    αs_ρ = zeros(l_ρ)
-    signs_ρ = zeros(l_ρ)
-    @inbounds for j in l+1:m-l
-        @inbounds for i in l+1:n-l
+    αs_ρ = ones(l_ρ)
+    signs_ρ = ones(l_ρ)
+    @inbounds for j in l1+1:m-l2
+        @inbounds for i in l1+1:n-l2
             @inbounds for (k, ρ) in enumerate(ρs)
-                αs_ρ[k] = compatibility(mink_ds[ρ], x[i-l:i+l, j-l:j+l])
-                signs_ρ[k] = get_sign(mink_ds[ρ], x[i-l:i+l, j-l:j+l])
+                αs_ρ[k] = compatibility(mink_ds[ρ], x[i-l1:i+l2, j-l1:j+l2])
+                signs_ρ[k] = get_sign(mink_ds[ρ], x[i-l1:i+l2, j-l1:j+l2])
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
-            αs[i-l, j-l] = correct_trials(α, l_ρ)
-            signs[i-l, j-l] = signs_ρ[idx]
+            αs[i-l1, j-l1] = correct_trials(α, l_ρ)
+            signs[i-l1, j-l1] = signs_ρ[idx]
         end
     end
 
@@ -177,9 +186,22 @@ function MinkowskiMap(x::CountsMap, b::Background, digits::Int, Ω::DensityOfSta
 
     m, n = size(x.pixels)
     L = Ω.n
-    l = floor(Int, L/2)
-    αs = ones(n - 2l, m - 2l)
-    signs = ones(n - 2l, m - 2l)
+
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        αs = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end
+    # l = floor(Int, L/2)
+    # αs = ones(n - 2l, m - 2l)
+    # signs = ones(n - 2l, m - 2l)
 
     idx_dict = get_λ_idxs(b, L)
     remove_boundary_idxs!(idx_dict, m, n, L)
@@ -191,9 +213,9 @@ function MinkowskiMap(x::CountsMap, b::Background, digits::Int, Ω::DensityOfSta
         mink_ds = Dict(ρ => MinkowskiDistribution(Ω, λ, ρ) for ρ in d_ρ_λ[λ])
         for idx in idxs
             i, j = idx.I
-            if l < i <= m-l && l < j <= n-l
-                local_counts = x[i-l:i+l, j-l:j+l]
-                local_background = b[i-l:i+l, j-l:j+l]
+            if l1 < i <= m-l2 && l1 < j <= n-l2 # boundary check for i,j
+                local_counts = x[i-l1:i+l2, j-l1:j+l2]
+                local_background = b[i-l1:i+l2, j-l1:j+l2]
                 correction!(local_counts, local_background, b[i, j])
                 ρs = get_thresholds(local_counts)
                 l_ρ = length(ρs)
@@ -205,8 +227,8 @@ function MinkowskiMap(x::CountsMap, b::Background, digits::Int, Ω::DensityOfSta
                 end
                 idx = argmin(αs_ρ)
                 α = αs_ρ[idx]
-                @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
-                @inbounds signs[i-l, j-l] = signs_ρ[idx]
+                @inbounds αs[i-l1, j-l1] = correct_trials(α, l_ρ)
+                @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
             end
         end
     end
@@ -222,16 +244,28 @@ based on the information by all functionals.
 function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
     m, n = size(x.pixels)
     L = Ω.n
-    l = floor(Int, L/2)
-    αs = ones(n - 2l, m - 2l)
-    signs = ones(n - 2l, m - 2l)
-    Threads.@threads for j in l+1:m-l
-        for i in l+1:n-l
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+        αs = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end
+    # l = floor(Int, L/2)
+    # αs = ones(n - 2l, m - 2l)
+    # signs = ones(n - 2l, m - 2l)
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
             if b.pixels[i, j] == 0.0
                 continue
             end
-            local_counts = x[i-l:i+l, j-l:j+l]
-            local_background = b[i-l:i+l, j-l:j+l]
+            local_counts = x[i-l1:i+l2, j-l1:j+l2]
+            local_background = b[i-l1:i+l2, j-l1:j+l2]
             correction!(local_counts, local_background, b[i, j])
             ρs = get_thresholds(local_counts)
             l_ρ = length(ρs)
@@ -244,8 +278,8 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             end
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
-            @inbounds αs[i-l, j-l] = correct_trials(α, l_ρ)
-            @inbounds signs[i-l, j-l] = signs_ρ[idx]
+            @inbounds αs[i-l1, j-l1] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
         end
     end
     return MinkowskiMap(αs .* signs)
@@ -446,8 +480,15 @@ This removes unnessary λ and indices from the calculation which sit on the boun
 which are nonetheless not used.
 """
 function remove_boundary_idxs(idxs::Vector{CartesianIndex{2}}, m::Int64, n::Int64, L::Int64)
-    l = floor(Int, L/2)
-    [idx for idx in idxs if l < idx.I[1] <= m-l && l < idx.I[2] <= n-l]
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+    end
+    [idx for idx in idxs if l1 < idx.I[1] <= m-l2 && l1 < idx.I[2] <= n-l2]
 end
 
 """
@@ -465,8 +506,15 @@ This determines which λ we need to take into account when constructing the sky 
 """
 function get_λs(b::Background, L)
     m, n = size(b)
-    l = floor(Int, L/2)
-    λs = unique(b.pixels[1+l:m-l, 1+l:n-l]) # here we need to remove the boundaries
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+    end
+    λs = unique(b.pixels[1+l1:m-l2, 1+l1:n-l2]) # here we need to remove the boundaries
 end
 
 """
@@ -474,7 +522,14 @@ end
 This determines which thresholds we need to take into account when constructing the sky map.
 """
 function get_ρ_λ(x::CountsMap, idx_dict::Dict{Float64, Vector{CartesianIndex{2}}}, L)
-    l = floor(Int, L/2)
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l = l1+l2
+    end
     λ_ρ_dict = Dict{Float64, UnitRange{Int64}}()
     for (λ, idxs) in idx_dict
         λ == 0.0 && continue
@@ -482,7 +537,7 @@ function get_ρ_λ(x::CountsMap, idx_dict::Dict{Float64, Vector{CartesianIndex{2
         ρmin = Inf
         for idx in idxs
             i, j = idx.I
-            local_counts = x[i-l:i+l, j-l:j+l]
+            local_counts = x[i-l1:i+l2, j-l1:j+l2]
             if maximum(local_counts) > ρmax;  ρmax = maximum(local_counts) end
             if minimum(local_counts) < ρmin; ρmin = minimum(local_counts) end
         end

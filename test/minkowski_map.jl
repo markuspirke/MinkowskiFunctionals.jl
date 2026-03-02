@@ -261,6 +261,45 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test sum(iszero.(mink_map.pixels)) == 0
 
 
+    # Some tests for even kernel sizes
+    Ω = DensityOfStates(2)
+    counts_map = CountsMap(ones(2, 2))
+    background = Background(ones(2, 2))
+    mink_map = MinkowskiMap(counts_map, background, Ω)
+    @test (1, 1) == size(mink_map)
+    @test 0.4120162277356765 ≈ mink_map[1, 1]
 
+    mink_map = MinkowskiMap(counts_map, background, 2, Ω)
+    @test (1, 1) == size(mink_map)
+    @test 0.4120162277356765 ≈ mink_map[1, 1]
 
+    mink_map = MinkowskiMap(counts_map, background, 2)
+    @test (1, 1) == size(mink_map)
+    @test 0.30386265695643844 ≈ mink_map[1, 1]
+
+    mink_map = MinkowskiMap(counts_map, 1.0, 2)
+    @test (1, 1) == size(mink_map)
+    @test 0.30386265695643844 ≈ mink_map[1, 1]
+
+    counts_map = CountsMap(ones(3, 3))
+    background = Background(ones(3, 3))
+    mink_map = MinkowskiMap(counts_map, background, Ω)
+    @test (2, 2) == size(mink_map)
+    @test 0.4120162277356765 ≈ mink_map[1, 1]
+
+    mink_map = MinkowskiMap(counts_map, background, 2, Ω)
+    @test (2, 2) == size(mink_map)
+    @test 0.4120162277356765 ≈ mink_map[1, 1]
+
+    mink_map = MinkowskiMap(counts_map, background, 2)
+    @test (2, 2) == size(mink_map)
+    @test 0.30386265695643844 ≈ mink_map[1, 1]
+
+    mink_map = MinkowskiMap(counts_map, 1.0, 2)
+    @test (2, 2) == size(mink_map)
+    @test 0.30386265695643844 ≈ mink_map[1, 1]
+
+    mink_map = MinkowskiFunctionals.nonhomogeonus_minkowski_map(counts_map, background, 2)
+    @test (2, 2) == size(mink_map)
+    @test 0.30386265695643844 ≈ mink_map[1, 1]
 end
