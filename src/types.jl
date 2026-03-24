@@ -128,6 +128,10 @@ struct Background
     pixels::Matrix{Float64}
 end
 
+function Background(N::Int64, λ::Float64)
+    return Background(λ * ones(N, N))
+end
+
 Base.size(x::Background) = size(x.pixels)
 Base.getindex(x::Background, i, j) = x.pixels[i, j]
 
