@@ -170,6 +170,35 @@ end
 
 
 """
+    function DensityOfStates(n::Int, N::Int)
+
+Estimates the Density of States for a given system size `n` via Monte Carlo sampling.
+`N` random binary images are drawn (each pixel independently black with p=0.5),
+and the Minkowski functional is computed for each. The raw counts are scaled by
+`2^(n²) / N` so that the result is consistent with the exact Ω normalization and
+can be used with `MinkowskiPValueLookup` and `MinkowskiDistribution`.
+
+Note: for large `n` the phase space is enormous, so only macrostates that are
+typical at p=0.5 will be sampled. Rare macrostates (very small or very large A)
+will be underrepresented or missing entirely.
+"""
+function DensityOfStates(n::Int, N::Int)
+    counts = Accumulator{MinkowskiFunctional, Int64}()
+    img = BitMatrix(undef, n, n)
+    for _ in 1:N
+        rand!(img)
+        f = MinkowskiFunctional(img)
+        counts[f] += 1
+    end
+    scale = exp2(n^2) / N
+    scaled = Accumulator{MinkowskiFunctional, Float64}()
+    for (f, c) in counts
+        scaled[f] = c * scale
+    end
+    DensityOfStates(n, scaled)
+end
+
+"""
     function Base.download(path::AbstractString, T::Type{DensityOfStates})
 
 This downloads a GitHub repository from Michael Klatt, in which the density of states
