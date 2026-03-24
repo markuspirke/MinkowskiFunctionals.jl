@@ -549,6 +549,134 @@ end
 
 
 """
+    struct MinkowskiPValueLookup
+
+Precomputed lookup structure built once from a `DensityOfStates` for
+allocation-free p-value queries at any blackening probability `p`.
+
+Instead of building a full `MinkowskiDistribution` (an `Accumulator` dict) for
+every `(λ, ρ)` pair, this struct stores each macrostate's Ω count in a sorted
+array grouped by area value A, with precomputed cumulative sums.
+
+At query time, the p-value of an observed `MinkowskiFunctional` `f` at blackening
+probability `p = gamma_inc(ρ, λ)[1]` is computed in O(n² · log m) time —
+where m is the max group size — using one `searchsortedlast` per distinct area
+value and zero allocations.
+
+Construction is O(N log N) in the number of macrostates and is done once per
+`DensityOfStates`.
+"""
+struct MinkowskiPValueLookup
+    n::Int
+    n_sq::Int
+    A_Ωs::Vector{Vector{Float64}}    # Ω counts, sorted ascending within each A-group
+    A_cumΩ::Vector{Vector{Float64}}  # cumulative Ω sums within each A-group
+    functional_Ω::Dict{MinkowskiFunctional, Float64}  # Ω lookup for observed f
+end
+
+"""
+    function MinkowskiPValueLookup(Ω::DensityOfStates)
+
+Builds a `MinkowskiPValueLookup` from a `DensityOfStates` by grouping all
+macrostates by their area A and sorting within each group by Ω ascending.
+"""
+function MinkowskiPValueLookup(Ω::DensityOfStates)
+    n    = Ω.n
+    n_sq = n^2
+
+    A_raw        = [Float64[] for _ in 0:n_sq]
+    functional_Ω = Dict{MinkowskiFunctional, Float64}()
+
+    for (f, count) in Ω.data
+        A   = Int(f.A)
+        Ω_f = Float64(count)
+        push!(A_raw[A + 1], Ω_f)
+        functional_Ω[f] = Ω_f
+    end
+
+    A_Ωs  = Vector{Vector{Float64}}(undef, n_sq + 1)
+    A_cumΩ = Vector{Vector{Float64}}(undef, n_sq + 1)
+
+    for A in 0:n_sq
+        sorted       = sort(A_raw[A + 1])
+        A_Ωs[A + 1]  = sorted
+        A_cumΩ[A + 1] = cumsum(sorted)
+    end
+
+    MinkowskiPValueLookup(n, n_sq, A_Ωs, A_cumΩ, functional_Ω)
+end
+
+function Base.show(io::IO, lut::MinkowskiPValueLookup)
+    print(io, "MinkowskiPValueLookup for a system size of $(lut.n) x $(lut.n).")
+end
+
+function window_size(lut::MinkowskiPValueLookup)
+    return lut.n
+end
+
+"""
+    function compatibility(lut::MinkowskiPValueLookup, f::MinkowskiFunctional, p::Float64)
+
+Returns the p-value for an observed `MinkowskiFunctional` `f` at blackening
+probability `p = gamma_inc(ρ, λ)[1]`.
+
+The p-value is the sum of probabilities of all macrostates whose probability
+does not exceed that of `f`. For macrostates in area group A, the inclusion
+condition reduces to
+
+    Ω(A, P, χ) ≤ Ω(f) · (p / (1 − p))^(f.A − A)
+
+which is evaluated allocation-free via `searchsortedlast` in each sorted
+per-area array.
+"""
+function compatibility(lut::MinkowskiPValueLookup, f::MinkowskiFunctional, p::Float64)
+    Ω_obs = lut.functional_Ω[f]
+    A_obs = Int(f.A)
+    n_sq  = lut.n_sq
+
+    p == 0.0 && return A_obs == 0    ? 1.0 : 0.0
+    p == 1.0 && return A_obs == n_sq ? 1.0 : 0.0
+
+    log_p   = log(p)
+    log_1mp = log1p(-p)
+    r       = p / (1 - p)
+
+    pval = 0.0
+
+    # Sweep downward: A = A_obs, A_obs-1, ..., 0.
+    # threshold(A) = Ω_obs · r^(A_obs − A).  Starting at Ω_obs and multiplying by r
+    # each step avoids any exp(log(Ω_obs)) round-trip, which would otherwise cause
+    # searchsortedlast to miss the observed state in its own A-group.
+    threshold = Ω_obs
+    @inbounds for A in A_obs:-1:0
+        group_Ωs = lut.A_Ωs[A + 1]
+        if !isempty(group_Ωs)
+            k = searchsortedlast(group_Ωs, threshold)
+            if k > 0
+                pval += lut.A_cumΩ[A + 1][k] * exp(A * log_p + (n_sq - A) * log_1mp)
+            end
+        end
+        threshold *= r   # threshold for A − 1
+    end
+
+    # Sweep upward: A = A_obs+1, ..., n_sq.
+    # threshold(A) = Ω_obs · r^(A_obs − A) = Ω_obs / r^(A − A_obs).
+    threshold = Ω_obs / r
+    @inbounds for A in A_obs+1:n_sq
+        group_Ωs = lut.A_Ωs[A + 1]
+        if !isempty(group_Ωs)
+            k = searchsortedlast(group_Ωs, threshold)
+            if k > 0
+                pval += lut.A_cumΩ[A + 1][k] * exp(A * log_p + (n_sq - A) * log_1mp)
+            end
+        end
+        threshold /= r   # threshold for A + 1
+    end
+
+    return pval
+end
+
+"""
     function sample_minkowski_distribution(b::Background, N::Int64)
 
 This is preliminary. Was used to sample Functionals for a given non-uniform background.

@@ -176,7 +176,7 @@ end
 
 
 """
-    function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
+    function MinkowskiMap(x::CountsMap, b::Background, digits::Int, Ω::DensityOfStates)
 
 This calculates a MinkowskiMap for a background gives for example from a FoV background model
 based on the information by all functionals.
@@ -199,14 +199,10 @@ function MinkowskiMap(x::CountsMap, b::Background, digits::Int, Ω::DensityOfSta
         αs = ones(n - l, m - l)
         signs = ones(n - l, m - l)
     end
-    # l = floor(Int, L/2)
-    # αs = ones(n - 2l, m - 2l)
-    # signs = ones(n - 2l, m - 2l)
 
     idx_dict = get_λ_idxs(b, L)
     remove_boundary_idxs!(idx_dict, m, n, L)
     d_ρ_λ = get_ρ_λ(x, idx_dict, L)
-
 
     for (λ, idxs) in idx_dict
         λ == 0.0 && continue
@@ -256,9 +252,6 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
         αs = ones(n - l, m - l)
         signs = ones(n - l, m - l)
     end
-    # l = floor(Int, L/2)
-    # αs = ones(n - 2l, m - 2l)
-    # signs = ones(n - 2l, m - 2l)
     for j in l1+1:m-l2
         for i in l1+1:n-l2
             if b.pixels[i, j] == 0.0
@@ -279,6 +272,58 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
             idx = argmin(αs_ρ)
             α = αs_ρ[idx]
             @inbounds αs[i-l1, j-l1] = correct_trials(α, l_ρ)
+            @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
+        end
+    end
+    return MinkowskiMap(αs .* signs)
+end
+
+"""
+    function MinkowskiMap(x::CountsMap, b::Background, lut::MinkowskiPValueLookup)
+
+This calculates a MinkowskiMap using a precomputed `MinkowskiPValueLookup`.
+For each pixel, the local window is thresholded at every relevant ρ, the
+Minkowski functional is computed, and its p-value is looked up from `lut`
+via allocation-free binary search — replacing the per-(λ, ρ)
+`MinkowskiDistribution` construction of the naive approach.
+"""
+function MinkowskiMap(x::CountsMap, b::Background, lut::MinkowskiPValueLookup)
+    m, n = size(x.pixels)
+    L = lut.n
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs    = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l  = l1 + l2
+        αs    = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
+            λ = b.pixels[i, j]
+            λ == 0.0 && continue
+            local_counts     = x[i-l1:i+l2, j-l1:j+l2]
+            local_background = b[i-l1:i+l2, j-l1:j+l2]
+            correction!(local_counts, local_background, λ)
+            ρs  = get_thresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ    = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                p, _ = gamma_inc(ρ, λ)
+                bw   = BWMap(local_counts, ρ)
+                f    = MinkowskiFunctional(bw)
+                @inbounds αs_ρ[k]    = compatibility(lut, f, p)
+                @inbounds signs_ρ[k] = p * lut.n_sq > Int(f.A) ? -1.0 : 1.0
+            end
+            # @show αs_ρ
+            idx = argmin(αs_ρ)
+            α   = αs_ρ[idx]
+            @inbounds αs[i-l1, j-l1]    = correct_trials(α, l_ρ)
             @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
         end
     end

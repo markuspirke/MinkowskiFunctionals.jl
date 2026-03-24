@@ -302,4 +302,15 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     mink_map = MinkowskiFunctionals.nonhomogeonus_minkowski_map(counts_map, background, 2)
     @test (2, 2) == size(mink_map)
     @test 0.30386265695643844 ≈ mink_map[1, 1]
+
+
+    # test lut
+    Ω = DensityOfStates(3; use_stored=true)
+    x = CountsMap(8, 10.0)
+    b = Background(10.0*ones(size(x)))
+    lut = MinkowskiPValueLookup(Ω)
+    map = MinkowskiMap(x, b, Ω)
+    map_lut = MinkowskiMap(x, b, lut)
+    @test all(map.pixels .≈ map_lut.pixels)
+
 end

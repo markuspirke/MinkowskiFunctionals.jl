@@ -97,6 +97,38 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test 0.15485799310649023 ≈ compatibility(d_pvalues, 10, x_counts_map)
 
 
+    # TEST MinkowskiPValueLookup
+    n, λ, ρ = 3, 10.0, 10
+    Ω   = DensityOfStates(n)
+    lut = MinkowskiPValueLookup(Ω)
+    @test lut.n    == n
+    @test lut.n_sq == n^2
+    @test window_size(lut) == n
+
+    # p_black is stored on MinkowskiDistribution, so derive p from there
+    d   = MinkowskiDistribution(Ω, λ, ρ)
+    p   = d.p_black
+    for (f, pval) in d.pvalues
+        @test pval ≈ compatibility(lut, f, p)
+    end
+
+    # edge cases: p = 0 and p = 1
+    f_all_black = MinkowskiFunctional(n^2, 12, 1)
+    f_all_white = MinkowskiFunctional(0, 0, 0)
+    @test 1.0 == compatibility(lut, f_all_white, 0.0)
+    @test 0.0 == compatibility(lut, f_all_black, 0.0)
+    @test 1.0 == compatibility(lut, f_all_black, 1.0)
+    @test 0.0 == compatibility(lut, f_all_white, 1.0)
+
+    # 5x5 system loaded from file
+    Ω5   = DensityOfStates(joinpath(SAMPLES_DIR, "structure_5x5"))
+    lut5 = MinkowskiPValueLookup(Ω5)
+    d5   = MinkowskiDistribution(Ω5, 10.0, 10)
+    p5   = d5.p_black
+    for (f, pval) in d5.pvalues
+        @test pval ≈ compatibility(lut5, f, p5)
+    end
+
     # TEST MARGINAL DISTRIBUTIONS
     n = 3
     λ = 10.0
