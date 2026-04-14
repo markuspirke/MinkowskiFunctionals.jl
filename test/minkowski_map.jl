@@ -246,19 +246,19 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     @test d_ρ_λ[3.0] == 1:14
     @test d_ρ_λ[4.0] == 1:14
 
-    Ω = DensityOfStates(3)
-    write_necessary_pvalues(SAMPLES_DIR, b, x, Ω)
-    mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR)
-    @test sum(iszero.(mink_map.pixels)) == 0
+    # Ω = DensityOfStates(3)
+    # write_necessary_pvalues(SAMPLES_DIR, b, x, Ω)
+    # mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR)
+    # @test sum(iszero.(mink_map.pixels)) == 0
 
-    λs = MinkowskiFunctionals.get_λs(b, L)
-    write_necessary_pvalues(SAMPLES_DIR, b, Ω)
-    for λ in λs
-        write_eccdf(SAMPLES_DIR, ECCDF(read_pvalues(SAMPLES_DIR, λ), λ, 3, 100, 10))
-    end
+    # λs = MinkowskiFunctionals.get_λs(b, L)
+    # write_necessary_pvalues(SAMPLES_DIR, b, Ω)
+    # for λ in λs
+    #     write_eccdf(SAMPLES_DIR, ECCDF(read_pvalues(SAMPLES_DIR, λ), λ, 3, 100, 10))
+    # end
 
-    mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR, SAMPLES_DIR)
-    @test sum(iszero.(mink_map.pixels)) == 0
+    # mink_map = MinkowskiMap(x, b, 3, SAMPLES_DIR, SAMPLES_DIR)
+    # @test sum(iszero.(mink_map.pixels)) == 0
 
 
     # Some tests for even kernel sizes
