@@ -24,7 +24,8 @@ export CountsMap, IntensityMap, BWMap, MinkowskiFunctional, IntX, p2σ, σ2p, Ba
     rand, Bernoulli, sample_functionals, SampledPoissonMinkowskiDistributions,
     MinkowskiMap, minkowski_map_A, correct_trials, get_thresholds, get_λs,
     λ_lima, significance_lima, lima_map, lima_map_roundkernel,
-    ECCDF, write_eccdf, read_eccdf, calc_ts!, calc_ts, update_distributions!, find_max_threshold
+    ECCDF, write_eccdf, read_eccdf, calc_ts!, calc_ts, update_distributions!, find_max_threshold,
+    flat_background, gaussian_source, point_source, gradient_source
 
 
 include("types.jl")
@@ -38,6 +39,7 @@ include("minkowski_map.jl")
 include("minkowski_map_nonhomogenous.jl")
 include("lima.jl")
 include("test_statistic.jl")
+include("sources.jl")
 
 
 end
