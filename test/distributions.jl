@@ -125,9 +125,7 @@ const SAMPLES_DIR = joinpath(@__DIR__, "samples")
     lut5 = MinkowskiPValueLookup(Ω5)
     d5   = MinkowskiDistribution(Ω5, 10.0, 10)
     p5   = d5.p_black
-    for (f, pval) in d5.pvalues
-        @test pval ≈ compatibility(lut5, f, p5)
-    end
+    @test all([pval ≈ compatibility(lut5, f, p5) for (f, pval) in d5.pvalues])
 
     # TEST MARGINAL DISTRIBUTIONS
     n = 3
