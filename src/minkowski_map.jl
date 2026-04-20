@@ -279,6 +279,51 @@ function MinkowskiMap(x::CountsMap, b::Background, Ω::DensityOfStates)
 end
 
 """
+    function MinkowskiMap(x::CountsMap, b::Float64, lut::MinkowskiPValueLookup)
+
+This calculates a MinkowskiMap for a homogeneous background `b` using a precomputed
+`MinkowskiPValueLookup`. No background correction is needed since the background
+is uniform.
+"""
+function MinkowskiMap(x::CountsMap, b::Float64, lut::MinkowskiPValueLookup)
+    m, n = size(x.pixels)
+    L = lut.n
+    if isodd(L)
+        l1 = floor(Int, L/2)
+        l2 = floor(Int, L/2)
+        αs    = ones(n - 2l1, m - 2l2)
+        signs = ones(n - 2l1, m - 2l2)
+    else
+        l1 = floor(Int, (L-1)/2)
+        l2 = ceil(Int, (L-1)/2)
+        l  = l1 + l2
+        αs    = ones(n - l, m - l)
+        signs = ones(n - l, m - l)
+    end
+    for j in l1+1:m-l2
+        for i in l1+1:n-l2
+            local_counts = x[i-l1:i+l2, j-l1:j+l2]
+            ρs  = get_thresholds(local_counts)
+            l_ρ = length(ρs)
+            αs_ρ    = ones(l_ρ)
+            signs_ρ = zeros(l_ρ)
+            for (k, ρ) in enumerate(ρs)
+                p, _ = gamma_inc(ρ, b)
+                bw   = BWMap(local_counts, ρ)
+                f    = MinkowskiFunctional(bw)
+                @inbounds αs_ρ[k]    = compatibility(lut, f, p)
+                @inbounds signs_ρ[k] = p * lut.n_sq > Int(f.A) ? -1.0 : 1.0
+            end
+            idx = argmin(αs_ρ)
+            α   = αs_ρ[idx]
+            @inbounds αs[i-l1, j-l1]    = correct_trials(α, l_ρ)
+            @inbounds signs[i-l1, j-l1] = signs_ρ[idx]
+        end
+    end
+    return MinkowskiMap(αs .* signs)
+end
+
+"""
     function MinkowskiMap(x::CountsMap, b::Background, lut::MinkowskiPValueLookup)
 
 This calculates a MinkowskiMap using a precomputed `MinkowskiPValueLookup`.
