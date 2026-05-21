@@ -221,7 +221,7 @@ function MinkowskiMap(x::CountsMap, b::Background, lut::MinkowskiPValueLookup, N
         signs = zeros(n_pix - l, m - l)
     end
     idx_dict = get_λ_idxs(b, L)
-    Threads.@threads for λ in get_λs(b, L)
+    for λ in get_λs(b, L)
         λ == 0.0 && continue
         eccdf = ECCDF(λ, lut, N)
         for idx in idx_dict[λ]
